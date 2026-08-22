@@ -13,7 +13,7 @@ The application is divided into four main functional modules:
 
 The detailed functional requirements are defined in:
 
-`BMIT2073_Codex_Project_Specification.md`
+`NextStep_Project_Specification.md`
 
 Before implementing a feature, read the relevant section of that specification and follow it as the main functional reference.
 

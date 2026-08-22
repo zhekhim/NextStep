@@ -10,13 +10,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:untitled/main.dart';
 
 void main() {
-  testWidgets('Registration form is displayed', (WidgetTester tester) async {
+  testWidgets('Login form is displayed', (WidgetTester tester) async {
     await tester.pumpWidget(const MyApp());
 
-    expect(find.text('Create account'), findsNWidgets(2));
-    expect(find.text('Full name'), findsOneWidget);
+    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Log in'), findsOneWidget);
     expect(find.text('Email'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
-    expect(find.text('Confirm password'), findsOneWidget);
   });
 }

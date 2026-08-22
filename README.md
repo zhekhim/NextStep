@@ -15,3 +15,14 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+# Run these on terminal
+flutter pub add supabase_flutter
+flutter pub add sqflite
+flutter pub add path
+flutter pub add uuid
+flutter pub add connectivity_plus
+flutter pub add geolocator
+flutter pub add flutter_local_notifications
+flutter pub get
+

@@ -1,4 +1,4 @@
-# AGENTS.md
+ # AGENTS.md
 
 ## Project Overview
 
@@ -614,7 +614,7 @@ When instructions conflict, follow this priority:
 
 1. The user's latest explicit instruction
 2. `AGENTS.md`
-3. `BMIT2073_Codex_Project_Specification.md`
+3. `NextStep_Project_Specification.md`
 4. UI/design Markdown documentation
 5. Existing project conventions and code
 6. Sensible Flutter/Dart conventions

@@ -1,21 +1,35 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:untitled/main.dart';
+import 'package:untitled/navigation/main_navigation_screen.dart';
 
 void main() {
-  testWidgets('Login form is displayed', (WidgetTester tester) async {
-    await tester.pumpWidget(const MyApp());
+  testWidgets('main navigation switches between all five sections', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: MainNavigationScreen()),
+    );
 
-    expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('Log in'), findsOneWidget);
-    expect(find.text('Email'), findsOneWidget);
-    expect(find.text('Password'), findsOneWidget);
+    expect(find.text('Home'), findsNWidgets(2));
+
+    await tester.tap(find.text('Careers'));
+    await tester.pumpAndSettle();
+    expect(find.text('Careers'), findsNWidgets(2));
+
+    await tester.tap(find.text('Learning'));
+    await tester.pumpAndSettle();
+    expect(find.text('Learning'), findsNWidgets(2));
+
+    await tester.tap(find.text('Goals'));
+    await tester.pumpAndSettle();
+    expect(find.text('Goals'), findsNWidgets(2));
+
+    await tester.tap(find.text('Profile'));
+    await tester.pumpAndSettle();
+    expect(find.text('Profile'), findsNWidgets(2));
+
+    await tester.tap(find.text('Home'));
+    await tester.pumpAndSettle();
+    expect(find.text('Home'), findsNWidgets(2));
   });
 }

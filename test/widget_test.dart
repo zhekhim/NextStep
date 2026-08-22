@@ -10,26 +10,26 @@ void main() {
       const MaterialApp(home: MainNavigationScreen()),
     );
 
-    expect(find.text('Home'), findsWidgets);
+    expect(find.text('Home'), findsNWidgets(2));
 
     await tester.tap(find.text('Careers'));
     await tester.pumpAndSettle();
-    expect(find.text('Careers'), findsWidgets);
+    expect(find.text('Careers'), findsNWidgets(2));
 
     await tester.tap(find.text('Learning'));
     await tester.pumpAndSettle();
-    expect(find.text('Learning'), findsWidgets);
+    expect(find.text('Learning'), findsNWidgets(2));
 
     await tester.tap(find.text('Goals'));
     await tester.pumpAndSettle();
-    expect(find.text('Goals'), findsWidgets);
+    expect(find.text('Goals'), findsNWidgets(2));
 
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
-    expect(find.text('Profile'), findsWidgets);
+    expect(find.text('Profile'), findsNWidgets(2));
 
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
-    expect(find.text('Home'), findsWidgets);
+    expect(find.text('Home'), findsNWidgets(2));
   });
 }

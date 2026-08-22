@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import 'auth/screens/register_screen.dart';
+import 'auth/screens/auth_gate.dart';
 import 'core/supabase/supabase_config.dart';
 import 'routes/app_routes.dart';
 
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF0F0F0F),
       ),
       routes: AppRoutes.routes,
-      home: const RegisterScreen(),
+      home: const AuthGate(),
     );
   }
 }

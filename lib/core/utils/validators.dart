@@ -1,7 +1,10 @@
 class Validators {
   Validators._();
 
-  static String? requiredField(String? value, {String fieldName = 'This field'}) {
+  static String? requiredField(
+    String? value, {
+    String fieldName = 'This field',
+  }) {
     if (value == null || value.trim().isEmpty) {
       return '$fieldName is required.';
     }
@@ -40,6 +43,14 @@ class Validators {
     final requiredError = requiredField(value, fieldName: 'Confirm password');
     if (requiredError != null) return requiredError;
     if (value != password) return 'Passwords do not match.';
+    return null;
+  }
+
+  static String? skillLevel(String? value) {
+    const validLevels = {'Beginner', 'Intermediate', 'Advanced'};
+    if (value == null || !validLevels.contains(value)) {
+      return 'Please select a valid skill level.';
+    }
     return null;
   }
 }

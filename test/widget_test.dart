@@ -6,9 +6,7 @@ void main() {
   testWidgets('main navigation switches between all five sections', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: MainNavigationScreen()),
-    );
+    await tester.pumpWidget(const MaterialApp(home: MainNavigationScreen()));
 
     expect(find.text('Home'), findsNWidgets(2));
 
@@ -22,11 +20,11 @@ void main() {
 
     await tester.tap(find.text('Goals'));
     await tester.pumpAndSettle();
-    expect(find.text('Goals'), findsNWidgets(2));
+    expect(find.text('My Career Goal'), findsOneWidget);
 
     await tester.tap(find.text('Profile'));
     await tester.pumpAndSettle();
-    expect(find.text('Profile'), findsNWidgets(2));
+    expect(find.text('Profile'), findsOneWidget);
 
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../modules/career_assessment/screens/assessment_screen.dart';
 import '../modules/career_intelligence/screens/career_explorer_screen.dart';
 import '../modules/career_readiness/screens/career_goal_screen.dart';
-import '../modules/learning_tracker/screens/roadmap_screen.dart';
 import '../modules/profile_skills/screens/profile_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -19,7 +19,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   static const _screens = <Widget>[
     HomeScreen(),
     CareerExplorerScreen(),
-    RoadmapScreen(),
+    AssessmentScreen(),
     CareerGoalScreen(),
     ProfileScreen(),
   ];
@@ -58,9 +58,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'Careers',
           ),
           NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school),
-            label: 'Learning',
+            icon: Icon(Icons.assignment_outlined),
+            selectedIcon: Icon(Icons.assignment),
+            label: 'Assessment',
           ),
           NavigationDestination(
             icon: Icon(Icons.flag_outlined),

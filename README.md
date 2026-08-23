@@ -24,5 +24,6 @@ flutter pub add uuid
 flutter pub add connectivity_plus
 flutter pub add geolocator
 flutter pub add flutter_local_notifications
+flutter pub add http
 flutter pub get
 

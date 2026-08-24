@@ -6,6 +6,7 @@ import '../repositories/career_repository.dart';
 import '../repositories/labour_market_repository.dart';
 import '../widgets/career_card.dart';
 import 'career_detail_screen.dart';
+import 'nearby_industry_screen.dart';
 
 class CareerExplorerScreen extends StatefulWidget {
   const CareerExplorerScreen({super.key});
@@ -113,6 +114,18 @@ class _CareerExplorerScreenState extends State<CareerExplorerScreen> {
               Text(
                 'Government Data Source - data.gov.my',
                 style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const NearbyIndustryScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.near_me_outlined),
+                label: const Text('Opportunities Near Me'),
               ),
               const SizedBox(height: 20),
               _buildContent(),

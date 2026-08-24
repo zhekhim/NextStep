@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../modules/career_assessment/screens/assessment_screen.dart';
 import '../modules/career_intelligence/screens/career_explorer_screen.dart';
-import '../modules/career_readiness/screens/career_goal_screen.dart';
+import '../modules/career_goals/screens/career_goal_screen.dart';
 import '../modules/profile_skills/screens/profile_screen.dart';
 import 'screens/home_screen.dart';
 

@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:untitled/modules/career_readiness/models/career_requirement.dart';
-import 'package:untitled/modules/career_readiness/services/skill_gap_service.dart';
+import 'package:untitled/modules/career_goals/models/career_requirement.dart';
+import 'package:untitled/modules/career_goals/services/skill_gap_service.dart';
 import 'package:untitled/modules/profile_skills/models/user_skill.dart';
 
 void main() {

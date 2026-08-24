@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../career_readiness/models/career_goal.dart';
-import '../../career_readiness/repositories/career_goal_repository.dart';
-import '../../career_readiness/screens/career_goal_screen.dart';
+import '../../career_goals/models/career_goal.dart';
+import '../../career_goals/repositories/career_goal_repository.dart';
+import '../../career_goals/screens/career_goal_screen.dart';
 import '../models/career.dart';
 import '../models/career_skill.dart';
 import '../repositories/career_repository.dart';

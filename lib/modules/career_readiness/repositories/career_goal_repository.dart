@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/career_goal.dart';
@@ -9,6 +11,10 @@ class CareerGoalRepository {
   }
 
   CareerGoalRepository._(this._client);
+  static final _goalChanges = StreamController<void>.broadcast();
+
+  static Stream<void> get goalChanges => _goalChanges.stream;
+
   final SupabaseClient? _client;
   SupabaseClient get _supabase => _client ?? Supabase.instance.client;
   String get _userId {
@@ -64,10 +70,13 @@ class CareerGoalRepository {
       'status': status,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }, onConflict: 'user_id');
+    _goalChanges.add(null);
   }
 
-  Future<void> deleteGoal() =>
-      _supabase.from('career_goals').delete().eq('user_id', _userId);
+  Future<void> deleteGoal() async {
+    await _supabase.from('career_goals').delete().eq('user_id', _userId);
+    _goalChanges.add(null);
+  }
 
   Future<List<CareerRequirement>> getRequirements(String careerId) async {
     final links = await _supabase

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/career_goal.dart';
@@ -14,6 +16,7 @@ class CareerGoalScreen extends StatefulWidget {
 
 class _CareerGoalScreenState extends State<CareerGoalScreen> {
   final _repository = CareerGoalRepository();
+  late final StreamSubscription<void> _goalChangesSubscription;
   bool _loading = true;
   String? _error;
   CareerGoal? _goal;
@@ -21,7 +24,16 @@ class _CareerGoalScreenState extends State<CareerGoalScreen> {
   @override
   void initState() {
     super.initState();
+    _goalChangesSubscription = CareerGoalRepository.goalChanges.listen((_) {
+      if (mounted) _load();
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    _goalChangesSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _load() async {

@@ -14,9 +14,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Careers'), findsNWidgets(2));
 
-    await tester.tap(find.text('Learning'));
+    await tester.tap(find.text('Assessment'));
     await tester.pumpAndSettle();
-    expect(find.text('Learning'), findsNWidgets(2));
+    expect(find.text('Assessment'), findsNWidgets(2));
 
     await tester.tap(find.text('Goals'));
     await tester.pumpAndSettle();

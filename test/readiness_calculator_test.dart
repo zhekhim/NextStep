@@ -27,27 +27,22 @@ void main() {
       ),
     ];
 
-    final score = ReadinessCalculator().calculate(
-      goal: goal,
-      skillGaps: gaps,
-      certificationProgress: 50,
-      learningProgress: 80,
-    );
+    final score = ReadinessCalculator().calculate(goal: goal, skillGaps: gaps);
 
-    expect(score.value, 87);
+    expect(score.value, 100);
+    expect(score.components.map((component) => component.weight), [0.70, 0.30]);
     expect(score.strongAreas, ['SQL']);
     expect(score.needsImprovement, isEmpty);
   });
 
-  test('clamps progress values to a valid percentage', () {
+  test('uses zero skill match when no requirements are available', () {
     final score = ReadinessCalculator().calculate(
       goal: goal,
       skillGaps: const [],
-      certificationProgress: 120,
-      learningProgress: -10,
     );
 
-    expect(score.components[1].score, 100);
-    expect(score.components[2].score, 0);
+    expect(score.value, 30);
+    expect(score.components.first.score, 0);
+    expect(score.components.last.score, 100);
   });
 }

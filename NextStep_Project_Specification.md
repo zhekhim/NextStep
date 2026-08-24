@@ -6,7 +6,7 @@ This project is for **BMIT2073 Mobile Application Development**.
 
 The assignment requires a mobile solution that uses **real-time or static Malaysian Government open data** to support **SDG 9: Industry, Innovation, and Infrastructure**.
 
-The application is a student career-development system. It combines student profiles and skills, Malaysian career and industry information, learning-roadmap management, and career-readiness analysis.
+The application is a student career-development system. It combines student profiles and skills, Malaysian career and industry information, a rule-based career assessment, and career-readiness analysis.
 
 The system is divided into **4 main modules**, with one module assigned to each member.
 
@@ -35,7 +35,7 @@ When implementing this project:
 
 ## Purpose
 
-Build the student's academic and technical profile. The information stored here is used by the other modules, especially career matching, skill-gap analysis, readiness scoring, and learning-roadmap generation.
+Build the student's academic and technical profile. The information stored here is used by the other modules, especially career matching, skill-gap analysis, and readiness scoring.
 
 This module must be more substantial than a basic profile editor. Its main functional component is the **Skill Portfolio Management System**.
 
@@ -123,7 +123,7 @@ This module provides information for:
 - Career skill matching
 - Skill-gap analysis
 - Career-readiness score
-- Learning roadmap
+- Career assessment and recommendations
 
 ---
 
@@ -244,101 +244,108 @@ Government information can be cached locally for offline use.
 
 ---
 
-# 5. Module 3 - Learning Roadmap & Certification Tracker
+# 5. Module 3 - Career Assessment & Recommendation
 
 **Owner:** Member 3
 
 ## Purpose
 
-Convert missing or insufficient skills identified by the system into actionable learning activities.
+Help students identify career areas that match their interests and working preferences through a transparent, rule-based questionnaire.
 
-The module should operate as a complete student-development management system rather than only displaying recommendations.
+This module must describe its scoring and matching rules clearly. It must not be described as AI unless an actual AI model or service is introduced.
 
-## 5.1 Learning Roadmap
+## 5.1 Assessment Questionnaire
 
-Example:
+The assessment contains active questions loaded from the remote database. Each question belongs to one of these dimensions:
 
-### Target Career: Data Analyst
+- Technical
+- Analytical
+- Creative
+- Business
+- Leadership
+- Research
 
-- Learn Advanced Excel - Completed
-- Learn SQL - Completed
-- Learn Power BI - Pending - Deadline: 10 Oct
-- Google Data Analytics - Pending - Deadline: 30 Nov
+Users answer each question using a five-point scale:
 
-The user must be able to:
+1. Strongly Disagree
+2. Disagree
+3. Neutral
+4. Agree
+5. Strongly Agree
 
-- Add learning task
-- View roadmap
-- Edit task
-- Delete task
-- Set deadline
-- Set priority
-- Set progress
-- Mark task as completed
+The assessment flow must:
 
-## CRUD Requirements
+- Show one question at a time
+- Show the current question number and overall progress
+- Require an answer before continuing
+- Allow the user to return to the previous question
+- Submit only after all questions are answered
+- Allow the user to retake the assessment
 
-### Create
-Add a learning task.
+## 5.2 Rule-Based Dimension Scoring
 
-### Read
-View the learning roadmap.
+For each assessment dimension:
 
-### Update
-Change:
+1. Add the selected values for questions in that dimension.
+2. Divide by the number of answered questions in that dimension to obtain an average from 1 to 5.
+3. Convert the average to a percentage using:
 
-- Deadline
-- Priority
-- Progress
-- Status
-
-### Delete
-Remove a learning task.
-
-## 5.2 Certification Tracker
-
-Users can maintain certification records.
+```text
+Dimension Score = (Average Answer / 5) x 100
+```
 
 Example:
 
-- Certification: Google Data Analytics
-- Provider: Google
-- Status: In Progress
-- Started: 20 Aug 2026
-- Expected Completion: 30 Oct 2026
+```text
+Technical answers: 4, 5, 3, 4
+Average = 4
+Technical Score = (4 / 5) x 100 = 80%
+```
 
-Required operations:
+The result screen shows all dimension scores in ranked order and highlights the three strongest areas.
 
-- Add certification
-- View certification
-- Update certification status/details
-- Delete certification
+## 5.3 Rule-Based Career Matching
 
-## 5.3 Mobile Feature - Local Notifications
+Each supported career has a stored target profile containing a value from 1 to 5 for every assessment dimension.
 
-The application should support deadline reminders.
+The matching service compares the user's dimension values with each career profile:
 
-Example:
+```text
+User Dimension Value = Dimension Percentage / 20
+Total Difference = Sum of the absolute differences across all 6 dimensions
+Career Match = (1 - Total Difference / 24) x 100
+```
 
-If a Power BI learning task is due on 25 August, the app may notify:
+The final percentage is limited to the range 0 to 100. Careers are sorted from the highest match to the lowest match, and the top five are displayed.
 
-> Power BI learning task is due in 3 days.
+Each recommendation shows:
 
-Possible reminder settings:
+- Rank
+- Career name
+- Match percentage
+- Action to open the existing career detail screen
 
-- 1 day before
-- 3 days before
-- 1 week before
+From the career detail screen, the user can set the recommended career as their active career goal. If another goal exists, the application must confirm replacement, preserve its optional goal details, and navigate directly to the Career Goal page after the replacement succeeds.
 
-This module should demonstrate:
+## 5.4 Data and Error Handling
 
-- CRUD
-- Date/time management
-- Local notifications
-- Local database usage
-- Remote database usage
-- Synchronisation
-- Progress processing
+Remote tables used by this module:
+
+- `assessment_questions`
+- `career_assessment_profiles`
+- `careers` through the existing career relationship
+
+The UI must handle:
+
+- Loading questions
+- No active questions
+- Failure to load questions
+- Missing answers
+- Loading career matches
+- No available career profiles
+- Failure to generate career matches
+
+This module demonstrates remote-data retrieval, validation, transparent score processing, rule-based recommendation, and cross-module navigation.
 
 ---
 
@@ -434,32 +441,26 @@ Example weighting:
 
 | Component | Weight |
 |---|---:|
-| Skill Match | 50% |
-| Certification Progress | 20% |
-| Learning Progress | 15% |
-| Industry Alignment | 15% |
+| Skill Match | 70% |
+| Industry Alignment | 30% |
 
 Example values:
 
 - Skill Match = 70
-- Certification Progress = 60
-- Learning Progress = 80
 - Industry Alignment = 90
 
 Calculation:
 
 ```text
-70 x 0.50 = 35
-60 x 0.20 = 12
-80 x 0.15 = 12
-90 x 0.15 = 13.5
+70 x 0.70 = 49
+90 x 0.30 = 27
 
-Career Readiness = 72.5%
+Career Readiness = 76%
 ```
 
 The UI can display:
 
-- Career Readiness: 72.5%
+- Career Readiness: 76%
 - Progress status such as `Good Progress`
 - Strong areas
 - Areas needing improvement
@@ -547,8 +548,8 @@ Examples:
 - Profiles
 - Skills
 - Career shortlists
-- Learning tasks
-- Certifications
+- Assessment questions
+- Career assessment profiles
 - Career goals
 - Readiness history
 
@@ -588,10 +589,8 @@ Validation must be implemented throughout the application.
 | Skill Level | Must use valid options |
 | Salary | Must be greater than 0 |
 | Target Year | Cannot be before the current year |
-| Deadline | Must be a valid allowed date |
-| Progress | Must be between 0 and 100 |
 | Career Priority | High / Medium / Low |
-| Certification | Required fields must be completed |
+| Assessment Answer | Required and must be from 1 to 5 |
 | Career Goal | Target career is required |
 
 Use useful UX messages.
@@ -612,36 +611,28 @@ Codex should preserve these relationships:
 
 ```text
 Module 1: Student Profile & Skills
-             |
-             +----------------------+
+                        |
+                        v
+Module 2: Career Data & Career Profiles
              |                      |
              v                      v
-Module 2: Career Data        Module 4: Skill Gap
-             |                      |
-             +----------+-----------+
-                        |
-                        v
-                Career Requirements
-                        |
-                        v
-                Skill Gap Analysis
-                        |
-                        v
-Module 3: Learning Roadmap & Certifications
-                        |
-                        v
-                Career Readiness Score
-                        |
-                        v
-                Readiness History
+Module 3: Career Assessment   Module 4: Skill Gap & Readiness
+             |
+             v
+Rule-Based Career Recommendations
+             |
+             v
+Module 2: Career Detail
 ```
 
 Important examples:
 
 - Module 4 reads student skills from Module 1.
 - Module 4 reads career requirements and industry information from Module 2.
-- Module 3 can use missing skills identified by Module 4 to create relevant learning activities.
-- Module 4 reads learning and certification progress from Module 3 when calculating readiness.
+- Module 3 reads assessment questions and career assessment profiles from the remote database.
+- Module 3 reuses career records from Module 2 when displaying recommendations.
+- Module 3 opens the existing Module 2 career detail screen when the user explores a recommended career.
+- Assessment recommendations and Module 4 readiness scores are separate transparent calculations unless a later requirement explicitly connects them.
 - Do not duplicate these records unnecessarily between modules.
 
 ---

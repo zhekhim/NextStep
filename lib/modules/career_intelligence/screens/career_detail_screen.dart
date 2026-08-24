@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../career_readiness/models/career_goal.dart';
+import '../../career_readiness/repositories/career_goal_repository.dart';
+import '../../career_readiness/screens/career_goal_screen.dart';
 import '../models/career.dart';
 import '../models/career_skill.dart';
 import '../repositories/career_repository.dart';
@@ -15,9 +18,11 @@ class CareerDetailScreen extends StatefulWidget {
 
 class _CareerDetailScreenState extends State<CareerDetailScreen> {
   final CareerRepository _repository = CareerRepository();
+  final CareerGoalRepository _goalRepository = CareerGoalRepository();
 
   List<CareerSkill> _skills = const [];
   bool _isLoading = false;
+  bool _isSavingGoal = false;
   String? _errorMessage;
 
   @override
@@ -48,6 +53,91 @@ class _CareerDetailScreenState extends State<CareerDetailScreen> {
     }
   }
 
+  Future<void> _setAsGoal() async {
+    if (_isSavingGoal) return;
+
+    setState(() => _isSavingGoal = true);
+    try {
+      final existingGoal = await _goalRepository.getGoal();
+      if (!mounted) return;
+
+      if (existingGoal?.career.id == widget.career.id) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('This career is already your goal.')),
+        );
+        return;
+      }
+
+      if (existingGoal != null) {
+        final replace =
+            await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                title: const Text('Replace career goal?'),
+                content: Text(
+                  'Your current goal, ${existingGoal.career.name}, will be replaced with ${widget.career.careerName}.',
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Replace Goal'),
+                  ),
+                ],
+              ),
+            ) ??
+            false;
+        if (!replace || !mounted) return;
+      }
+
+      await _goalRepository.saveGoal(
+        career: CareerOption(
+          id: widget.career.id,
+          name: widget.career.careerName,
+          category: widget.career.category,
+        ),
+        preferredState: existingGoal?.preferredState,
+        targetGraduationYear: existingGoal?.targetGraduationYear,
+        expectedSalary: existingGoal?.expectedSalary,
+      );
+      if (!mounted) return;
+
+      if (existingGoal != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${widget.career.careerName} is now your career goal.',
+            ),
+          ),
+        );
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(builder: (_) => const CareerGoalScreen()),
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${widget.career.careerName} is now your career goal.'),
+        ),
+      );
+    } catch (error) {
+      debugPrint('Unable to set career goal: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to set this career as your goal. Try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingGoal = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final career = widget.career;
@@ -75,6 +165,22 @@ class _CareerDetailScreenState extends State<CareerDetailScreen> {
             const _SectionLabel('Required Skills'),
             const SizedBox(height: 12),
             _buildSkills(),
+            const SizedBox(height: 24),
+            FilledButton.icon(
+              onPressed: _isSavingGoal ? null : _setAsGoal,
+              icon: _isSavingGoal
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.flag_outlined),
+              label: Text(
+                _isSavingGoal ? 'Setting Career Goal...' : 'Set This Career as Goal',
+              ),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
           ],
         ),
       ),

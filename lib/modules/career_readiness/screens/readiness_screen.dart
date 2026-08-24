@@ -176,7 +176,7 @@ class _ReadinessContent extends StatelessWidget {
         ),
         const SizedBox(height: 14),
         const Text(
-          'Formula: Skill Match 50% + Certification Progress 20% + Learning Progress 15% + Industry Alignment 15%.',
+          'Formula: Skill Match 70% + Industry Alignment 30%.',
           style: TextStyle(fontSize: 11, color: Color(0xFF888888)),
         ),
       ],

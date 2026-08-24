@@ -15,7 +15,7 @@ The application has four main modules:
 
 1. Student Profile & Skill Portfolio
 2. Industry & Career Intelligence
-3. Learning Roadmap & Certification Tracker
+3. Career Assessment & Recommendation
 4. Career Goal & Readiness Intelligence
 
 The application should feel like one connected product rather than four separate apps.
@@ -196,7 +196,7 @@ Use a consistent bottom navigation bar with five destinations:
 
 1. Home
 2. Careers
-3. Learning
+3. Assessment
 4. Goals
 5. Profile
 
@@ -268,23 +268,23 @@ Show dynamically:
 
 Sample skills such as Python, SQL, Power BI, and Statistics are only examples.
 
-### Learning Progress
+### Assessment Overview
 
-Show actual task progress, e.g.:
+Show whether the user has completed an assessment during the current session and provide a direct action, e.g.:
 
-`{completedTasks} of {totalTasks} learning tasks completed`
+`Discover careers that match your interests.`
 
-### Upcoming Deadline
+### Recommended Career
 
-Show the nearest actual deadline.
+When assessment results are available, show the highest-ranked career and its calculated match percentage.
 
-If none exists, show an appropriate empty state.
+If no assessment has been completed, show an appropriate prompt instead of a fake recommendation.
 
 ### Quick Actions
 
 - Explore Careers
 - Add Skill
-- Add Learning Task
+- Take Assessment
 - View Readiness
 
 The dashboard should feel like a compact career command center.
@@ -518,145 +518,109 @@ If location permission is unavailable or denied, allow manual state selection.
 
 ---
 
-## 13. Module 3 — Learning Roadmap & Certification Tracker
+## 13. Module 3 — Career Assessment & Recommendation
 
-### Learning Roadmap
+### Assessment Introduction
 
 Header:
-`Learning Roadmap`
+`Assessment`
 
-Show selected target career when available.
+Show a centered introduction containing:
 
-Progress format:
-`{completedTasks} / {totalTasks} completed`
+- Assessment icon
+- `Career Assessment` title
+- Short explanation of its purpose
+- Number of questions
+- Approximate completion time
 
-Each task should show:
+Primary action:
+`Start Assessment`
 
-- Task name
-- Status
-- Deadline
-- Priority
-- Progress
+### Assessment Question
 
-Include:
-`+ Add Learning Task`
+Show one question at a time.
 
-### Add / Edit Learning Task
+At the top, show:
 
-Fields:
+- `Question {current} of {total}`
+- Linear progress indicator
 
-- Task Name
-- Description
-- Deadline
-- Priority
-- Progress
-- Status
+The question card contains:
 
-Priority:
+- Question text
+- Five selectable answers numbered 1 to 5
 
-- High
-- Medium
-- Low
+Answer labels:
 
-Status:
+- Strongly Disagree
+- Disagree
+- Neutral
+- Agree
+- Strongly Agree
 
-- Not Started
-- In Progress
-- Completed
+Clearly highlight the selected answer with the primary color and a check icon.
 
-Progress:
-`0–100%`
+Navigation actions:
 
-Primary:
-`Save Task`
+- `Previous`
+- `Next`
+- `Submit` on the final question
 
 Validation:
 
-- `Deadline cannot be earlier than today.`
-- `Progress must be between 0 and 100.`
+- `Please select an answer before continuing.`
+- `Please answer all questions before submitting.`
 
-### Learning Task Detail
-
-Show:
-
-- Task Name
-- Description
-- Target Career when relevant
-- Deadline
-- Priority
-- Progress
-- Status
-- Large progress indicator
-
-Actions:
-
-- Edit Task
-- Mark Completed
-- Delete Task
-
-### Certifications
-
-Header:
-`Certifications`
-
-Each card displays dynamically:
-
-- Certification name
-- Provider
-- Status
-- Start Date
-- Expected Completion Date
-
-Actions:
-
-- View
-- Edit
-- Delete
-
-Include:
-`+ Add Certification`
-
-### Add / Edit Certification
-
-Fields:
-
-- Certification Name
-- Provider
-- Status
-- Start Date
-- Expected Completion Date
-
-Status:
-
-- Not Started
-- In Progress
-- Completed
-
-Primary:
-`Save Certification`
-
-### Learning Reminder
-
-Use selected task data dynamically.
+### Assessment Results
 
 Show:
 
-- Task name
-- Due date
-- Reminder selection
+- `Your Career Profile` heading
+- All six dimension scores in ranked order
+- Percentage for each dimension
+- The user's three strongest areas
+- Top five career matches
 
-Options may include:
+Each career match card shows:
 
-- 1 day before
-- 3 days before
-- 1 week before
+- Rank
+- Career name
+- Match percentage
+- `Explore Career` action
 
-Primary:
-`Save Reminder`
+After opening a recommended career, the Career Detail screen includes:
+`Set This Career as Goal`
 
-Notification preview example format:
+If the user already has a different goal, ask for confirmation before replacing it. Preserve the existing optional goal details, set the selected career as the active goal, and navigate directly to the Career Goal page after a successful replacement. Show clear success and failure feedback.
 
-`{taskName} is due in {numberOfDays} days.`
+Primary action:
+`Retake Assessment`
+
+### Loading, Empty, and Error States
+
+Questions loading:
+`Loading assessment questions...`
+
+Questions unavailable:
+`No assessment questions available.`
+
+Question load failure:
+`Unable to load assessment questions.`
+
+Matches loading:
+`Generating career matches...`
+
+No matches:
+`No career matches are currently available.`
+
+Match failure:
+`Unable to generate career matches.`
+
+Error states should provide `Retry` where the operation can be attempted again.
+
+### Responsive Behaviour
+
+Use a scrollable layout for questions and results. Long question or career text must wrap without clipping. Buttons must remain large enough for comfortable mobile use.
 
 ---
 
@@ -742,7 +706,7 @@ All values must be calculated from real career requirements and the user's skill
 Do not hard-code `3 / 5` or `60%`.
 
 CTA:
-`View Learning Roadmap`
+`Explore Careers`
 
 ### Career Readiness
 
@@ -761,8 +725,6 @@ Show:
 Possible components:
 
 - Skill Match
-- Certification Progress
-- Learning Progress
 - Industry Alignment
 
 All displayed values must come from the actual readiness calculation.
@@ -779,10 +741,7 @@ Sections:
 
 `Needs Improvement`
 
-For weak/missing skills, optionally provide:
-`Learn This Skill`
-
-which links to the Learning Roadmap.
+For weak or missing skills, provide clear improvement guidance.
 
 ### Readiness History
 
@@ -827,14 +786,11 @@ Skills:
 Career shortlist:
 `Your shortlist is empty.`
 
-Learning:
-`No learning tasks yet.`
+Assessment:
+`Take the career assessment to see your strongest areas.`
 
 Career goal:
 `You have not set a career goal yet.`
-
-Certifications:
-`No certifications added yet.`
 
 Always provide a useful next action where practical.
 
@@ -842,7 +798,7 @@ Always provide a useful next action where practical.
 
 - `Skill added successfully.`
 - `Career goal updated.`
-- `Learning task completed.`
+- `Assessment completed.`
 
 Use success green sparingly.
 
@@ -907,7 +863,7 @@ Examples include:
 
 - Long university names
 - Long career names
-- Long certification names
+- Long assessment questions
 - Long personal notes
 
 Use wrapping, ellipsis, `Flexible`, or `Expanded` where appropriate.
@@ -936,8 +892,8 @@ Login
 → Career Explorer
 → Career Detail
 → Shortlist
-→ Learning Roadmap
-→ Certification
+→ Career Assessment
+→ Assessment Results
 → Career Goal
 → Skill Gap Analysis
 → Career Readiness
@@ -958,12 +914,11 @@ Important interactions:
 - Career Detail → Add to Shortlist
 - Career Detail → Compare
 - Shortlist → Edit/Delete
-- Learning Roadmap → Task Detail
-- Learning Roadmap → Add Task
-- Certification → Add/Edit
+- Career Assessment → Assessment Results
+- Assessment Results → Career Detail
+- Assessment Results → Retake Assessment
 - Career Goal → Create/Edit
 - Career Goal → Skill Gap Analysis
-- Skill Gap → Learning Roadmap
 - Readiness → History
 
 Use consistent Flutter navigation transitions.
@@ -1011,7 +966,7 @@ Examples:
 - Profile updated → profile UI refreshes
 - Skill added → skill list refreshes
 - Goal updated → dashboard goal card refreshes
-- Task completed → learning progress refreshes
+- Assessment completed → assessment results refresh
 - Readiness recalculated → readiness UI refreshes
 - Location changed → nearby opportunity data refreshes
 

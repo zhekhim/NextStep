@@ -9,7 +9,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Supabase.initialize(
     url: SupabaseConfig.url,
-    anonKey: SupabaseConfig.publishableKey,
+    anonKey: SupabaseConfig.secretKey,
   );
   runApp(const MyApp());
 }

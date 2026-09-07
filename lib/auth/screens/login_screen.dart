@@ -72,7 +72,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (normalized.contains('rate limit') || normalized.contains('too many')) {
       return 'Too many login attempts. Please wait and try again.';
     }
-    return 'Login failed: $message';
+    return 'Login failed. Please check your details and try again.';
   }
 
   void _showError(String message) {

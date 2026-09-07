@@ -1,0 +1,82 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:untitled/modules/career_intelligence/screens/career_feature_placeholder_screen.dart';
+import 'package:untitled/modules/career_intelligence/screens/career_interest_types_screen.dart';
+import 'package:untitled/modules/career_intelligence/screens/careers_hub_screen.dart';
+import 'package:untitled/modules/career_intelligence/services/riasec_reference_service.dart';
+
+void main() {
+  const service = RiasecReferenceService();
+
+  test('provides exactly the six ordered RIASEC types with attribution', () {
+    final types = service.getTypes();
+
+    expect(types, hasLength(6));
+    expect(types.map((type) => type.code), ['R', 'I', 'A', 'S', 'E', 'C']);
+    expect(types.map((type) => type.name), [
+      'Realistic',
+      'Investigative',
+      'Artistic',
+      'Social',
+      'Enterprising',
+      'Conventional',
+    ]);
+    expect(types.map((type) => type.code).toSet(), hasLength(6));
+    for (final type in types) {
+      expect(type.description.trim(), isNotEmpty);
+      expect(type.sourceName, RiasecReferenceService.sourceName);
+      expect(type.sourceUrl, 'https://eprofiling.mohe.gov.my/');
+    }
+  });
+
+  testWidgets(
+    'screen shows all types and source information without overflow',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: CareerInterestTypesScreen()),
+      );
+
+      expect(find.text('Career Interest Types'), findsOneWidget);
+      for (final type in service.getTypes()) {
+        await tester.scrollUntilVisible(
+          find.byKey(ValueKey('riasec-${type.code}')),
+          150,
+        );
+        expect(find.text(type.name), findsOneWidget);
+        expect(find.text(type.code), findsOneWidget);
+      }
+      await tester.scrollUntilVisible(
+        find.textContaining('https://eprofiling.mohe.gov.my/'),
+        150,
+      );
+      expect(
+        find.textContaining('Ministry of Higher Education Malaysia (MOHE)'),
+        findsOneWidget,
+      );
+      await tester.scrollUntilVisible(
+        find.text(RiasecReferenceService.translationNote),
+        100,
+      );
+      expect(find.text(RiasecReferenceService.translationNote), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Hub opens interest types while Career Fairs stays a placeholder',
+    (tester) async {
+      await tester.pumpWidget(const MaterialApp(home: CareersHubScreen()));
+      await tester.scrollUntilVisible(find.text('Career Interest Types'), 100);
+      await tester.tap(find.text('Career Interest Types'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CareerInterestTypesScreen), findsOneWidget);
+
+      tester.state<NavigatorState>(find.byType(Navigator)).pop();
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('Career Fairs'), 100);
+      await tester.tap(find.text('Career Fairs'));
+      await tester.pumpAndSettle();
+      expect(find.byType(CareerFeaturePlaceholderScreen), findsOneWidget);
+    },
+  );
+}

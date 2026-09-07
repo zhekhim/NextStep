@@ -7,7 +7,6 @@ import 'package:untitled/modules/career_intelligence/models/career.dart';
 import 'package:untitled/modules/career_intelligence/models/career_shortlist.dart';
 import 'package:untitled/modules/career_intelligence/repositories/career_shortlist_repository.dart';
 import 'package:untitled/modules/career_intelligence/screens/career_detail_screen.dart';
-import 'package:untitled/modules/career_intelligence/screens/career_feature_placeholder_screen.dart';
 import 'package:untitled/modules/career_intelligence/screens/careers_hub_screen.dart';
 import 'package:untitled/modules/career_intelligence/screens/edit_interested_career_screen.dart';
 import 'package:untitled/modules/career_intelligence/screens/interested_careers_screen.dart';
@@ -295,13 +294,6 @@ void main() {
     await tester.tap(find.text('Interested Careers'));
     await tester.pumpAndSettle();
     expect(find.byType(InterestedCareersScreen), findsOneWidget);
-
-    tester.state<NavigatorState>(find.byType(Navigator)).pop();
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Career Fairs'), 100);
-    await tester.tap(find.text('Career Fairs'));
-    await tester.pumpAndSettle();
-    expect(find.byType(CareerFeaturePlaceholderScreen), findsOneWidget);
   });
 }
 

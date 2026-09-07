@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'career_explorer_screen.dart';
-import 'career_feature_placeholder_screen.dart';
+import 'career_fairs_screen.dart';
 import 'career_interest_types_screen.dart';
 import 'interested_careers_screen.dart';
 import 'labour_market_screen.dart';
@@ -11,12 +11,14 @@ class CareersHubScreen extends StatelessWidget {
     super.key,
     this.exploreBuilder,
     this.interestedCareersBuilder,
+    this.careerFairsBuilder,
     this.interestTypesBuilder,
     this.labourMarketBuilder,
   });
 
   final WidgetBuilder? exploreBuilder;
   final WidgetBuilder? interestedCareersBuilder;
+  final WidgetBuilder? careerFairsBuilder;
   final WidgetBuilder? interestTypesBuilder;
   final WidgetBuilder? labourMarketBuilder;
 
@@ -40,11 +42,7 @@ class CareersHubScreen extends StatelessWidget {
         title: 'Career Fairs',
         description: 'Discover upcoming career events.',
         icon: Icons.event_outlined,
-        builder: (_) => const CareerFeaturePlaceholderScreen(
-          title: 'Career Fairs',
-          message: 'Career Fairs will be implemented in a later phase.',
-          icon: Icons.event_outlined,
-        ),
+        builder: careerFairsBuilder ?? (_) => const CareerFairsScreen(),
       ),
       _CareerDestination(
         title: 'Career Interest Types',

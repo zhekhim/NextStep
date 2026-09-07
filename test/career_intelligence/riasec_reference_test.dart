@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:untitled/modules/career_intelligence/screens/career_feature_placeholder_screen.dart';
 import 'package:untitled/modules/career_intelligence/screens/career_interest_types_screen.dart';
 import 'package:untitled/modules/career_intelligence/screens/careers_hub_screen.dart';
 import 'package:untitled/modules/career_intelligence/services/riasec_reference_service.dart';
@@ -62,21 +61,11 @@ void main() {
     },
   );
 
-  testWidgets(
-    'Hub opens interest types while Career Fairs stays a placeholder',
-    (tester) async {
-      await tester.pumpWidget(const MaterialApp(home: CareersHubScreen()));
-      await tester.scrollUntilVisible(find.text('Career Interest Types'), 100);
-      await tester.tap(find.text('Career Interest Types'));
-      await tester.pumpAndSettle();
-      expect(find.byType(CareerInterestTypesScreen), findsOneWidget);
-
-      tester.state<NavigatorState>(find.byType(Navigator)).pop();
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('Career Fairs'), 100);
-      await tester.tap(find.text('Career Fairs'));
-      await tester.pumpAndSettle();
-      expect(find.byType(CareerFeaturePlaceholderScreen), findsOneWidget);
-    },
-  );
+  testWidgets('Hub opens Career Interest Types', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: CareersHubScreen()));
+    await tester.scrollUntilVisible(find.text('Career Interest Types'), 100);
+    await tester.tap(find.text('Career Interest Types'));
+    await tester.pumpAndSettle();
+    expect(find.byType(CareerInterestTypesScreen), findsOneWidget);
+  });
 }

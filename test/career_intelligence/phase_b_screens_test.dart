@@ -8,7 +8,6 @@ import 'package:untitled/modules/career_intelligence/models/career_shortlist.dar
 import 'package:untitled/modules/career_intelligence/models/labour_force_statistic.dart';
 import 'package:untitled/modules/career_intelligence/screens/career_detail_screen.dart';
 import 'package:untitled/modules/career_intelligence/screens/career_explorer_screen.dart';
-import 'package:untitled/modules/career_intelligence/screens/career_feature_placeholder_screen.dart';
 import 'package:untitled/modules/career_intelligence/screens/careers_hub_screen.dart';
 import 'package:untitled/modules/career_intelligence/screens/labour_market_screen.dart';
 import 'package:untitled/modules/career_intelligence/repositories/career_shortlist_repository.dart';
@@ -82,20 +81,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Labour target'), findsOneWidget);
     });
-
-    for (final entry in {
-      'Career Fairs': 'Career Fairs will be implemented in a later phase.',
-    }.entries) {
-      testWidgets('opens ${entry.key} placeholder', (tester) async {
-        await tester.pumpWidget(app(const CareersHubScreen()));
-        await tester.scrollUntilVisible(find.text(entry.key), 100);
-        await tester.tap(find.text(entry.key));
-        await tester.pumpAndSettle();
-
-        expect(find.byType(CareerFeaturePlaceholderScreen), findsOneWidget);
-        expect(find.text(entry.value), findsOneWidget);
-      });
-    }
   });
 
   group('Career Explorer', () {

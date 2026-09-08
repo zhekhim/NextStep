@@ -19,6 +19,7 @@ void main() {
   testWidgets('all five Careers Hub destinations open and return normally', (
     tester,
   ) async {
+    await _useCompactAndroidSize(tester);
     const routes = {
       'Explore Careers': 'Explore destination',
       'Interested Careers': 'Interested destination',

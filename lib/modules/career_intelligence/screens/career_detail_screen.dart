@@ -129,7 +129,11 @@ class _CareerDetailScreenState extends State<CareerDetailScreen> {
             widget.career.id,
           );
       if (!mounted) return;
-      setState(() => _skills = skills);
+      final seenSkillIds = <String>{};
+      final uniqueSkills = skills
+          .where((skill) => seenSkillIds.add(skill.skillId))
+          .toList(growable: false);
+      setState(() => _skills = uniqueSkills);
     } catch (error) {
       debugPrint('Unable to load required skills: $error');
       if (mounted) {

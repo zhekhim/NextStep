@@ -139,6 +139,7 @@ void main() {
         ),
       );
       expect(find.text('Open Venue in Maps'), findsNothing);
+      expect(find.text('Copy Address'), findsNothing);
     });
 
     testWidgets('shows progress and blocks repeated launches', (tester) async {

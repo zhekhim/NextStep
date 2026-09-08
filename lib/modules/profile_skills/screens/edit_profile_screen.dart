@@ -24,6 +24,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late final TextEditingController _fullNameController;
   late final TextEditingController _universityController;
   late final TextEditingController _majorController;
+  late final TextEditingController _titleController;
+  late final TextEditingController _bioController;
+  late final TextEditingController _rolesController;
   int? _studyYear;
   bool _saving = false;
   String? _saveError;
@@ -37,6 +40,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       text: widget.profile.university,
     );
     _majorController = TextEditingController(text: widget.profile.major);
+    _titleController = TextEditingController(text: widget.profile.title);
+    _bioController = TextEditingController(text: widget.profile.bio);
+    _rolesController = TextEditingController(
+      text: widget.profile.targetedJobRoles.join(', '),
+    );
     _studyYear = int.tryParse(widget.profile.yearOfStudy ?? '');
   }
 
@@ -45,6 +53,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _fullNameController.dispose();
     _universityController.dispose();
     _majorController.dispose();
+    _titleController.dispose();
+    _bioController.dispose();
+    _rolesController.dispose();
     super.dispose();
   }
 
@@ -61,6 +72,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         university: _universityController.text,
         major: _majorController.text,
         studyYear: _studyYear!,
+        title: _titleController.text,
+        bio: _bioController.text,
+        targetedJobRoles: _rolesController.text
+            .split(',')
+            .map((role) => role.trim())
+            .where((role) => role.isNotEmpty)
+            .toList(),
       );
       if (mounted) {
         Navigator.pop(
@@ -70,6 +88,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             university: _universityController.text.trim(),
             major: _majorController.text.trim(),
             yearOfStudy: _studyYear!.toString(),
+            title: _titleController.text.trim(),
+            bio: _bioController.text.trim(),
+            targetedJobRoles: _rolesController.text
+                .split(',')
+                .map((role) => role.trim())
+                .where((role) => role.isNotEmpty)
+                .toList(),
           ),
         );
       }
@@ -129,6 +154,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               decoration: _decoration('Major'),
               validator: (value) =>
                   Validators.requiredField(value, fieldName: 'Major'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _titleController,
+              enabled: !_saving,
+              decoration: _decoration('Professional Title'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _bioController,
+              enabled: !_saving,
+              maxLines: 4,
+              decoration: _decoration('Bio'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _rolesController,
+              enabled: !_saving,
+              decoration: _decoration(
+                'Targeted Job Roles',
+                helperText: 'Separate multiple roles with commas.',
+              ),
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(

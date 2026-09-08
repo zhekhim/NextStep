@@ -1,0 +1,23 @@
+[
+  {
+    "career": "Software Engineer",
+    "employment_rate": 94.2,
+    "unemployment_rate": 5.8,
+    "required_skills": ["Python", "Java", "C++", "SQL"],
+    "outlook": "Strong demand for software and digital skills."
+  },
+  {
+    "career": "Data Analyst",
+    "employment_rate": 91.5,
+    "unemployment_rate": 8.5,
+    "required_skills": ["Python", "SQL", "Statistics", "Excel"],
+    "outlook": "Stable demand across business and technology sectors."
+  },
+  {
+    "career": "Project Manager",
+    "employment_rate": 88.0,
+    "unemployment_rate": 12.0,
+    "required_skills": ["Project Management", "Communication", "Leadership"],
+    "outlook": "Transferable coordination skills remain valuable."
+  }
+]

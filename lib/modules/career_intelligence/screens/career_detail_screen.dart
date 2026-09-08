@@ -5,12 +5,22 @@ import '../../career_goals/repositories/career_goal_repository.dart';
 import '../../career_goals/screens/career_goal_screen.dart';
 import '../models/career.dart';
 import '../models/career_skill.dart';
+import '../models/career_shortlist.dart';
 import '../repositories/career_repository.dart';
+import '../repositories/career_shortlist_repository.dart';
+import 'edit_interested_career_screen.dart';
 
 class CareerDetailScreen extends StatefulWidget {
-  const CareerDetailScreen({required this.career, super.key});
+  const CareerDetailScreen({
+    required this.career,
+    super.key,
+    this.loadSkills,
+    this.shortlistRepository,
+  });
 
   final Career career;
+  final Future<List<CareerSkill>> Function(String careerId)? loadSkills;
+  final CareerShortlistRepository? shortlistRepository;
 
   @override
   State<CareerDetailScreen> createState() => _CareerDetailScreenState();
@@ -19,16 +29,90 @@ class CareerDetailScreen extends StatefulWidget {
 class _CareerDetailScreenState extends State<CareerDetailScreen> {
   final CareerRepository _repository = CareerRepository();
   final CareerGoalRepository _goalRepository = CareerGoalRepository();
+  late final CareerShortlistRepository _shortlistRepository;
 
   List<CareerSkill> _skills = const [];
   bool _isLoading = false;
   bool _isSavingGoal = false;
+  bool _isCheckingShortlist = false;
+  bool _isSavingShortlist = false;
+  CareerShortlist? _shortlist;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _shortlistRepository =
+        widget.shortlistRepository ?? SupabaseCareerShortlistRepository();
     _loadSkills();
+    _checkShortlist();
+  }
+
+  Future<void> _checkShortlist() async {
+    setState(() => _isCheckingShortlist = true);
+    try {
+      final shortlist = await _shortlistRepository.getShortlistForCareer(
+        widget.career.id,
+      );
+      if (mounted) setState(() => _shortlist = shortlist);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to check interested career status.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCheckingShortlist = false);
+    }
+  }
+
+  Future<void> _handleShortlist() async {
+    if (_isCheckingShortlist || _isSavingShortlist) return;
+    final existing = _shortlist;
+    if (existing != null) {
+      final result = await Navigator.of(context).push<Object>(
+        MaterialPageRoute<Object>(
+          builder: (_) => EditInterestedCareerScreen(
+            shortlist: existing,
+            repository: _shortlistRepository,
+          ),
+        ),
+      );
+      if (!mounted || result == null) return;
+      setState(() => _shortlist = result is CareerShortlist ? result : null);
+      return;
+    }
+
+    setState(() => _isSavingShortlist = true);
+    try {
+      final saved = await _shortlistRepository.addCareer(
+        careerId: widget.career.id,
+      );
+      if (!mounted) return;
+      setState(() => _shortlist = saved);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Career saved to interested careers.')),
+      );
+    } on DuplicateCareerShortlistException catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+        await _checkShortlist();
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Unable to save this career. Try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSavingShortlist = false);
+    }
   }
 
   Future<void> _loadSkills() async {
@@ -40,7 +124,10 @@ class _CareerDetailScreenState extends State<CareerDetailScreen> {
     });
 
     try {
-      final skills = await _repository.getSkillsForCareer(widget.career.id);
+      final skills =
+          await (widget.loadSkills ?? _repository.getSkillsForCareer)(
+            widget.career.id,
+          );
       if (!mounted) return;
       setState(() => _skills = skills);
     } catch (error) {
@@ -166,6 +253,34 @@ class _CareerDetailScreenState extends State<CareerDetailScreen> {
             const SizedBox(height: 12),
             _buildSkills(),
             const SizedBox(height: 24),
+            OutlinedButton.icon(
+              onPressed: _isCheckingShortlist || _isSavingShortlist
+                  ? null
+                  : _handleShortlist,
+              icon: _isCheckingShortlist || _isSavingShortlist
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : Icon(
+                      _shortlist == null
+                          ? Icons.bookmark_add_outlined
+                          : Icons.bookmark,
+                    ),
+              label: Text(
+                _isCheckingShortlist
+                    ? 'Checking Interested Careers...'
+                    : _isSavingShortlist
+                    ? 'Saving...'
+                    : _shortlist == null
+                    ? 'Save to Interested Careers'
+                    : 'Saved to Interested Careers',
+              ),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(48),
+              ),
+            ),
+            const SizedBox(height: 12),
             FilledButton.icon(
               onPressed: _isSavingGoal ? null : _setAsGoal,
               icon: _isSavingGoal
@@ -175,7 +290,9 @@ class _CareerDetailScreenState extends State<CareerDetailScreen> {
                     )
                   : const Icon(Icons.flag_outlined),
               label: Text(
-                _isSavingGoal ? 'Setting Career Goal...' : 'Set This Career as Goal',
+                _isSavingGoal
+                    ? 'Setting Career Goal...'
+                    : 'Set This Career as Goal',
               ),
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(48),

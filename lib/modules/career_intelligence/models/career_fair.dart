@@ -33,7 +33,15 @@ class CareerFair {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  bool get hasCoordinates => latitude != null && longitude != null;
+  bool get hasCoordinates =>
+      latitude != null &&
+      longitude != null &&
+      latitude!.isFinite &&
+      longitude!.isFinite &&
+      latitude! >= -90 &&
+      latitude! <= 90 &&
+      longitude! >= -180 &&
+      longitude! <= 180;
   bool get hasUsableLocation => hasCoordinates || address.trim().isNotEmpty;
 
   factory CareerFair.fromJson(Map<String, dynamic> json) {

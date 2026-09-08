@@ -127,14 +127,21 @@ class _CareerExplorerScreenState extends State<CareerExplorerScreen> {
         const SizedBox(height: 12),
         DropdownButtonFormField<String>(
           initialValue: _selectedCategory,
+          isExpanded: true,
           decoration: const InputDecoration(
             labelText: 'Category',
             border: OutlineInputBorder(),
           ),
           items: [_allCategories, ...categories]
               .map(
-                (category) =>
-                    DropdownMenuItem(value: category, child: Text(category)),
+                (category) => DropdownMenuItem(
+                  value: category,
+                  child: Text(
+                    category,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
               )
               .toList(),
           onChanged: (category) {

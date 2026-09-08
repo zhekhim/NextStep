@@ -164,6 +164,7 @@ class _InterestedCareersScreenState extends State<InterestedCareersScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         itemCount: _items.length,
         itemBuilder: (context, index) {

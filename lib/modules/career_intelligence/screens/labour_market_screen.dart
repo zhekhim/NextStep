@@ -140,31 +140,34 @@ class _LabourMarketScreenState extends State<LabourMarketScreen> {
           },
         ),
         const SizedBox(height: 20),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-          childAspectRatio: 1.15,
-          children: [
-            _StatisticCard(
-              label: 'Employed Persons',
-              value: '${(selected.employed / 1000).toStringAsFixed(2)} million',
-            ),
-            _StatisticCard(
-              label: 'Unemployed Persons',
-              value: '${selected.unemployed.toStringAsFixed(1)} thousand',
-            ),
-            _StatisticCard(
-              label: 'Unemployment Rate',
-              value: '${selected.unemploymentRate.toStringAsFixed(1)}%',
-            ),
-            _StatisticCard(
-              label: 'Labour Force Participation Rate',
-              value: '${selected.participationRate.toStringAsFixed(1)}%',
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) => GridView.count(
+            crossAxisCount: constraints.maxWidth < 360 ? 1 : 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            mainAxisExtent: 170,
+            children: [
+              _StatisticCard(
+                label: 'Employed Persons',
+                value:
+                    '${(selected.employed / 1000).toStringAsFixed(2)} million',
+              ),
+              _StatisticCard(
+                label: 'Unemployed Persons',
+                value: '${selected.unemployed.toStringAsFixed(1)} thousand',
+              ),
+              _StatisticCard(
+                label: 'Unemployment Rate',
+                value: '${selected.unemploymentRate.toStringAsFixed(1)}%',
+              ),
+              _StatisticCard(
+                label: 'Labour Force Participation Rate',
+                value: '${selected.participationRate.toStringAsFixed(1)}%',
+              ),
+            ],
+          ),
         ),
       ],
     );

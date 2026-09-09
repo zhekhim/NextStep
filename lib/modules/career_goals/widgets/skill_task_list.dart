@@ -2,12 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../models/skill_task.dart';
 import '../repositories/skill_task_repository.dart';
+import '../services/goal_progress_service.dart';
 
 class SkillTaskList extends StatefulWidget {
-  const SkillTaskList({required this.goalId, required this.skillId, super.key});
+  const SkillTaskList({
+    required this.goalId,
+    required this.skillId,
+    this.onTasksChanged,
+    super.key,
+  });
 
   final String goalId;
   final String skillId;
+  final VoidCallback? onTasksChanged;
 
   @override
   State<SkillTaskList> createState() => _SkillTaskListState();
@@ -53,7 +60,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Unable to load tasks.';
+        _error = 'Unable to load milestones.';
         _loading = false;
       });
     }
@@ -70,9 +77,10 @@ class _SkillTaskListState extends State<SkillTaskList> {
         dueDate: input.dueDate,
       );
       await _load();
-      _showMessage('Task added.');
+      widget.onTasksChanged?.call();
+      _showMessage('Milestone added.');
     } catch (_) {
-      _showMessage('Unable to add task. Try again.');
+      _showMessage('Unable to add milestone. Try again.');
     }
   }
 
@@ -86,9 +94,10 @@ class _SkillTaskListState extends State<SkillTaskList> {
         dueDate: input.dueDate,
       );
       await _load();
-      _showMessage('Task updated.');
+      widget.onTasksChanged?.call();
+      _showMessage('Milestone updated.');
     } catch (_) {
-      _showMessage('Unable to update task. Try again.');
+      _showMessage('Unable to update milestone. Try again.');
     }
   }
 
@@ -97,8 +106,9 @@ class _SkillTaskListState extends State<SkillTaskList> {
     try {
       await _repository.setTaskCompleted(task: task, isCompleted: completed);
       await _load();
+      widget.onTasksChanged?.call();
     } catch (_) {
-      _showMessage('Unable to update task. Try again.');
+      _showMessage('Unable to update milestone. Try again.');
     } finally {
       if (mounted) setState(() => _busyTaskId = null);
     }
@@ -109,9 +119,10 @@ class _SkillTaskListState extends State<SkillTaskList> {
         await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Delete Task?'),
+            title: const Text('Delete Milestone?'),
             content: Text(
-              'Are you sure you want to delete\n"${task.taskTitle}"?',
+              'Are you sure you want to delete the milestone\n'
+              '"${task.taskTitle}"?',
             ),
             actions: [
               TextButton(
@@ -134,9 +145,10 @@ class _SkillTaskListState extends State<SkillTaskList> {
     try {
       await _repository.deleteTask(task);
       await _load();
-      _showMessage('Task deleted.');
+      widget.onTasksChanged?.call();
+      _showMessage('Milestone deleted.');
     } catch (_) {
-      _showMessage('Unable to delete task. Try again.');
+      _showMessage('Unable to delete milestone. Try again.');
     } finally {
       if (mounted) setState(() => _busyTaskId = null);
     }
@@ -150,7 +162,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(task == null ? 'Add Development Task' : 'Edit Task'),
+          title: Text(task == null ? 'Add Milestone' : 'Edit Milestone'),
           content: Form(
             key: formKey,
             child: Column(
@@ -161,11 +173,11 @@ class _SkillTaskListState extends State<SkillTaskList> {
                   controller: titleController,
                   autofocus: true,
                   decoration: const InputDecoration(
-                    labelText: 'Task Title',
+                    labelText: 'Milestone Title',
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Task title is required.'
+                      ? 'Milestone title is required.'
                       : null,
                 ),
                 const SizedBox(height: 16),
@@ -260,7 +272,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             SizedBox(width: 10),
-            Text('Loading tasks...'),
+            Text('Loading milestones...'),
           ],
         ),
       );
@@ -270,7 +282,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
         padding: const EdgeInsets.only(top: 14),
         child: Row(
           children: [
-            const Expanded(child: Text('Unable to load tasks.')),
+            const Expanded(child: Text('Unable to load milestones.')),
             TextButton(onPressed: _load, child: const Text('Retry')),
           ],
         ),
@@ -325,7 +337,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
           TextButton.icon(
             onPressed: _addTask,
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Add Task'),
+            label: const Text('Add Milestone'),
           ),
         ],
       ),
@@ -349,63 +361,99 @@ class _TaskRow extends StatelessWidget {
   final VoidCallback onDelete;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Checkbox(
-          value: task.isCompleted,
-          onChanged: busy ? null : (value) => onCompleted(value ?? false),
-          visualDensity: VisualDensity.compact,
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task.taskTitle,
-                  style: TextStyle(
-                    decoration: task.isCompleted
-                        ? TextDecoration.lineThrough
-                        : null,
-                    color: task.isCompleted
-                        ? const Color(0xFF888888)
-                        : Colors.white,
+  Widget build(BuildContext context) {
+    final deadlineState = GoalProgressService().deadlineState(task);
+    final (deadlineLabel, deadlineColor) = switch (deadlineState) {
+      MilestoneDeadlineState.completed => (
+        'Completed',
+        const Color(0xFF33D17A),
+      ),
+      MilestoneDeadlineState.overdue => ('Overdue', const Color(0xFFFF4D4D)),
+      MilestoneDeadlineState.dueSoon => ('Due Soon', const Color(0xFFFFCC4D)),
+      MilestoneDeadlineState.upcoming => ('Upcoming', const Color(0xFFC8CEFF)),
+    };
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Checkbox(
+            value: task.isCompleted,
+            onChanged: busy ? null : (value) => onCompleted(value ?? false),
+            visualDensity: VisualDensity.compact,
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    task.taskTitle,
+                    style: TextStyle(
+                      decoration: task.isCompleted
+                          ? TextDecoration.lineThrough
+                          : null,
+                      color: task.isCompleted
+                          ? const Color(0xFF888888)
+                          : Colors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  task.isCompleted
-                      ? task.completedAt == null
-                            ? 'Completed'
-                            : 'Completed: ${_formatDate(task.completedAt!.toLocal())}'
-                      : 'Due: ${_formatDate(task.dueDate)}',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFFA8A8A8),
+                  const SizedBox(height: 3),
+                  Text(
+                    task.isCompleted
+                        ? task.completedAt == null
+                              ? 'Completed'
+                              : 'Completed: ${_formatDate(task.completedAt!.toLocal())}'
+                        : 'Due: ${_formatDate(task.dueDate)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFFA8A8A8),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 6),
+                  _DeadlineBadge(label: deadlineLabel, color: deadlineColor),
+                ],
+              ),
             ),
           ),
-        ),
-        IconButton(
-          tooltip: 'Edit task',
-          onPressed: busy ? null : onEdit,
-          icon: const Icon(Icons.edit_outlined, size: 18),
-          visualDensity: VisualDensity.compact,
-        ),
-        IconButton(
-          tooltip: 'Delete task',
-          onPressed: busy ? null : onDelete,
-          icon: const Icon(Icons.delete_outline, size: 18),
-          color: const Color(0xFFFF4D4D),
-          visualDensity: VisualDensity.compact,
-        ),
-      ],
+          IconButton(
+            tooltip: 'Edit milestone',
+            onPressed: busy ? null : onEdit,
+            icon: const Icon(Icons.edit_outlined, size: 18),
+            visualDensity: VisualDensity.compact,
+          ),
+          IconButton(
+            tooltip: 'Delete milestone',
+            onPressed: busy ? null : onDelete,
+            icon: const Icon(Icons.delete_outline, size: 18),
+            color: const Color(0xFFFF4D4D),
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DeadlineBadge extends StatelessWidget {
+  const _DeadlineBadge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.12),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withValues(alpha: 0.3)),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w600),
     ),
   );
 }

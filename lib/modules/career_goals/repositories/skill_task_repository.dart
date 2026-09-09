@@ -34,6 +34,17 @@ class SkillTaskRepository {
     return rows.map(SkillTask.fromJson).toList();
   }
 
+  Future<List<SkillTask>> getTasksForGoal(String goalId) async {
+    final rows = await _supabase
+        .from('skill_tasks')
+        .select()
+        .eq('user_id', _userId)
+        .eq('goal_id', goalId)
+        .order('is_completed')
+        .order('due_date');
+    return rows.map(SkillTask.fromJson).toList();
+  }
+
   Future<SkillTask> addTask({
     required String goalId,
     required String skillId,

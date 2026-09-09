@@ -39,6 +39,33 @@ class GoalProgressService {
     return MilestoneDeadlineState.upcoming;
   }
 
+  List<SkillTask> prioritizedUpcoming(
+    Iterable<SkillTask> milestones, {
+    DateTime? today,
+  }) {
+    final currentDate = today ?? DateTime.now();
+    final result = milestones
+        .where((milestone) => !milestone.isCompleted)
+        .toList();
+    result.sort((first, second) {
+      final stateComparison = _priority(
+        deadlineState(first, today: currentDate),
+      ).compareTo(_priority(deadlineState(second, today: currentDate)));
+      if (stateComparison != 0) return stateComparison;
+      final dateComparison = first.dueDate.compareTo(second.dueDate);
+      if (dateComparison != 0) return dateComparison;
+      return first.taskTitle.compareTo(second.taskTitle);
+    });
+    return result;
+  }
+
+  int _priority(MilestoneDeadlineState state) => switch (state) {
+    MilestoneDeadlineState.overdue => 0,
+    MilestoneDeadlineState.dueSoon => 1,
+    MilestoneDeadlineState.upcoming => 2,
+    MilestoneDeadlineState.completed => 3,
+  };
+
   DateTime _dateOnly(DateTime value) =>
       DateTime(value.year, value.month, value.day);
 }

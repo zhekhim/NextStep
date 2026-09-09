@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../models/skill_task.dart';
 import '../repositories/skill_task_repository.dart';
+import '../services/calendar_service.dart';
 import '../services/goal_progress_service.dart';
 
 class SkillTaskList extends StatefulWidget {
   const SkillTaskList({
     required this.goalId,
     required this.skillId,
+    required this.careerGoalTitle,
     this.onTasksChanged,
     super.key,
   });
 
   final String goalId;
   final String skillId;
+  final String careerGoalTitle;
   final VoidCallback? onTasksChanged;
 
   @override
@@ -22,6 +25,7 @@ class SkillTaskList extends StatefulWidget {
 
 class _SkillTaskListState extends State<SkillTaskList> {
   final _repository = SkillTaskRepository();
+  final _calendarService = CalendarService();
   List<SkillTask> _tasks = const [];
   bool _loading = true;
   String? _error;
@@ -93,6 +97,14 @@ class _SkillTaskListState extends State<SkillTaskList> {
         taskTitle: input.title,
         dueDate: input.dueDate,
       );
+      if (task.calendarEventId != null) {
+        await _calendarService.updateMilestone(
+          eventId: task.calendarEventId!,
+          milestoneTitle: input.title,
+          dueDate: input.dueDate,
+          careerGoalTitle: widget.careerGoalTitle,
+        );
+      }
       await _load();
       widget.onTasksChanged?.call();
       _showMessage('Milestone updated.');
@@ -143,6 +155,9 @@ class _SkillTaskListState extends State<SkillTaskList> {
     if (!confirmed) return;
     setState(() => _busyTaskId = task.id);
     try {
+      if (task.calendarEventId != null) {
+        await _calendarService.removeEvent(task.calendarEventId!);
+      }
       await _repository.deleteTask(task);
       await _load();
       widget.onTasksChanged?.call();
@@ -154,103 +169,40 @@ class _SkillTaskListState extends State<SkillTaskList> {
     }
   }
 
-  Future<_TaskInput?> _showTaskDialog({SkillTask? task}) async {
-    final formKey = GlobalKey<FormState>();
-    final titleController = TextEditingController(text: task?.taskTitle ?? '');
-    DateTime? dueDate = task?.dueDate;
-    final result = await showDialog<_TaskInput>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(task == null ? 'Add Milestone' : 'Edit Milestone'),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextFormField(
-                  controller: titleController,
-                  autofocus: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Milestone Title',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (value) => value == null || value.trim().isEmpty
-                      ? 'Milestone title is required.'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final today = _today();
-                    final initialDate =
-                        dueDate == null || dueDate!.isBefore(today)
-                        ? today
-                        : dueDate!;
-                    final selected = await showDatePicker(
-                      context: context,
-                      initialDate: initialDate,
-                      firstDate: today,
-                      lastDate: DateTime(today.year + 20, 12, 31),
-                    );
-                    if (selected != null && context.mounted) {
-                      setDialogState(() => dueDate = selected);
-                    }
-                  },
-                  icon: const Icon(Icons.calendar_today_outlined),
-                  label: Text(
-                    dueDate == null
-                        ? 'Select Due Date'
-                        : 'Due: ${_formatDate(dueDate!)}',
-                  ),
-                ),
-                if (dueDate == null)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8),
-                    child: Text(
-                      'Please select a due date.',
-                      style: TextStyle(fontSize: 12, color: Color(0xFFA8A8A8)),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                if (!formKey.currentState!.validate()) return;
-                if (dueDate == null) {
-                  _showDialogMessage('Please select a due date.');
-                  return;
-                }
-                if (dueDate!.isBefore(_today())) {
-                  _showDialogMessage('Due date cannot be earlier than today.');
-                  return;
-                }
-                Navigator.pop(
-                  context,
-                  _TaskInput(titleController.text.trim(), dueDate!),
-                );
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        ),
-      ),
-    );
-    titleController.dispose();
-    return result;
+  Future<void> _addToCalendar(SkillTask task) async {
+    setState(() => _busyTaskId = task.id);
+    String? eventId;
+    try {
+      eventId = await _calendarService.addMilestone(
+        milestone: task,
+        careerGoalTitle: widget.careerGoalTitle,
+      );
+      await _repository.setCalendarEventId(
+        task: task,
+        calendarEventId: eventId,
+      );
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage('Milestone added to your calendar.');
+    } on CalendarPermissionDeniedException {
+      _showMessage('Calendar permission is required to add this milestone.');
+    } catch (_) {
+      if (eventId != null) {
+        try {
+          await _calendarService.removeEvent(eventId);
+        } catch (_) {}
+      }
+      _showMessage('Unable to add milestone to calendar. Try again.');
+    } finally {
+      if (mounted) setState(() => _busyTaskId = null);
+    }
   }
 
-  void _showDialogMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  Future<_TaskInput?> _showTaskDialog({SkillTask? task}) async {
+    return showDialog<_TaskInput>(
+      context: context,
+      builder: (context) => _MilestoneDialog(task: task),
+    );
   }
 
   void _showMessage(String message) {
@@ -330,6 +282,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
                 onCompleted: (value) => _setCompleted(task, value),
                 onEdit: () => _editTask(task),
                 onDelete: () => _deleteTask(task),
+                onAddToCalendar: () => _addToCalendar(task),
               ),
             ),
           ],
@@ -352,6 +305,7 @@ class _TaskRow extends StatelessWidget {
     required this.onCompleted,
     required this.onEdit,
     required this.onDelete,
+    required this.onAddToCalendar,
   });
 
   final SkillTask task;
@@ -359,6 +313,7 @@ class _TaskRow extends StatelessWidget {
   final ValueChanged<bool> onCompleted;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback onAddToCalendar;
 
   @override
   Widget build(BuildContext context) {
@@ -414,6 +369,36 @@ class _TaskRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   _DeadlineBadge(label: deadlineLabel, color: deadlineColor),
+                  const SizedBox(height: 8),
+                  if (task.calendarEventId == null)
+                    OutlinedButton.icon(
+                      onPressed: busy ? null : onAddToCalendar,
+                      icon: const Icon(Icons.event_outlined, size: 17),
+                      label: const Text('Add to Calendar'),
+                      style: OutlinedButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    )
+                  else
+                    const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.event_available_outlined,
+                          size: 17,
+                          color: Color(0xFF33D17A),
+                        ),
+                        SizedBox(width: 6),
+                        Text(
+                          'Added to Calendar',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF33D17A),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -435,6 +420,121 @@ class _TaskRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _MilestoneDialog extends StatefulWidget {
+  const _MilestoneDialog({this.task});
+
+  final SkillTask? task;
+
+  @override
+  State<_MilestoneDialog> createState() => _MilestoneDialogState();
+}
+
+class _MilestoneDialogState extends State<_MilestoneDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _titleController;
+  DateTime? _dueDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(
+      text: widget.task?.taskTitle ?? '',
+    );
+    _dueDate = widget.task?.dueDate;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _selectDueDate() async {
+    final today = _today();
+    final initialDate = _dueDate == null || _dueDate!.isBefore(today)
+        ? today
+        : _dueDate!;
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: today,
+      lastDate: DateTime(today.year + 20, 12, 31),
+    );
+    if (selected != null && mounted) {
+      setState(() => _dueDate = selected);
+    }
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    if (_dueDate == null) {
+      _showMessage('Please select a due date.');
+      return;
+    }
+    if (_dueDate!.isBefore(_today())) {
+      _showMessage('Due date cannot be earlier than today.');
+      return;
+    }
+    Navigator.pop(context, _TaskInput(_titleController.text.trim(), _dueDate!));
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(widget.task == null ? 'Add Milestone' : 'Edit Milestone'),
+    content: Form(
+      key: _formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          TextFormField(
+            controller: _titleController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Milestone Title',
+              border: OutlineInputBorder(),
+            ),
+            validator: (value) => value == null || value.trim().isEmpty
+                ? 'Milestone title is required.'
+                : null,
+          ),
+          const SizedBox(height: 16),
+          OutlinedButton.icon(
+            onPressed: _selectDueDate,
+            icon: const Icon(Icons.calendar_today_outlined),
+            label: Text(
+              _dueDate == null
+                  ? 'Select Due Date'
+                  : 'Due: ${_formatDate(_dueDate!)}',
+            ),
+          ),
+          if (_dueDate == null)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Please select a due date.',
+                style: TextStyle(fontSize: 12, color: Color(0xFFA8A8A8)),
+              ),
+            ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _save, child: const Text('Save')),
+    ],
+  );
 }
 
 class _DeadlineBadge extends StatelessWidget {

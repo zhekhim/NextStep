@@ -110,6 +110,24 @@ class SkillTaskRepository {
     return SkillTask.fromJson(row);
   }
 
+  Future<SkillTask> setCalendarEventId({
+    required SkillTask task,
+    required String calendarEventId,
+  }) async {
+    final row = await _supabase
+        .from('skill_tasks')
+        .update({
+          'calendar_event_id': calendarEventId,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', task.id)
+        .eq('user_id', _userId)
+        .eq('goal_id', task.goalId)
+        .select()
+        .single();
+    return SkillTask.fromJson(row);
+  }
+
   Future<void> deleteTask(SkillTask task) async {
     await _supabase
         .from('skill_tasks')

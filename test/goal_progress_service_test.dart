@@ -88,4 +88,42 @@ void main() {
       expect(state, MilestoneDeadlineState.upcoming);
     });
   });
+
+  test('prioritizes actionable milestones and excludes completed ones', () {
+    final service = GoalProgressService();
+    final today = DateTime(2026, 9, 8);
+
+    final result = service.prioritizedUpcoming([
+      milestone('upcoming', completed: false, dueDate: DateTime(2026, 9, 20)),
+      milestone('completed', completed: true, dueDate: DateTime(2026, 9, 1)),
+      milestone(
+        'due-soon-later',
+        completed: false,
+        dueDate: DateTime(2026, 9, 11),
+      ),
+      milestone(
+        'overdue-later',
+        completed: false,
+        dueDate: DateTime(2026, 9, 7),
+      ),
+      milestone(
+        'overdue-first',
+        completed: false,
+        dueDate: DateTime(2026, 9, 5),
+      ),
+      milestone(
+        'due-soon-first',
+        completed: false,
+        dueDate: DateTime(2026, 9, 8),
+      ),
+    ], today: today);
+
+    expect(result.map((value) => value.id), [
+      'overdue-first',
+      'overdue-later',
+      'due-soon-first',
+      'due-soon-later',
+      'upcoming',
+    ]);
+  });
 }

@@ -9,9 +9,18 @@ class CareerShortlist {
     required this.updatedAt,
     this.priority,
     this.notes,
+    this.status = 'Interested',
   });
 
   static const priorities = ['High', 'Medium', 'Low'];
+  static const statuses = ['Interested', 'Considering', 'Not Interested'];
+  final String status;
+
+  static String validateStatus(String value) {
+    if (!statuses.contains(value))
+      throw ArgumentError('Select an interest status.');
+    return value;
+  }
 
   final String id;
   final String userId;
@@ -36,6 +45,7 @@ class CareerShortlist {
       career: Career.fromJson(careerMap),
       priority: validatePriority(json['priority'] as String?),
       notes: normalizeNotes(json['notes'] as String?),
+      status: validateStatus(json['status'] as String? ?? 'Interested'),
       createdAt: _requiredDate(json, 'created_at'),
       updatedAt: _requiredDate(json, 'updated_at'),
     );

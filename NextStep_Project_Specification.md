@@ -258,20 +258,20 @@ This module must describe its scoring and matching rules clearly. It must not be
 
 The assessment contains active questions loaded from the remote database. Each question belongs to one of these dimensions:
 
-- Technical
-- Analytical
-- Creative
-- Business
-- Leadership
-- Research
+- Realistic
+- Investigate
+- Artistic
+- Entreprising
+- Social
+- Realistic
 
 Users answer each question using a five-point scale:
 
-1. Strongly Disagree
-2. Disagree
+1. Dislike
+2. Slightly dislike
 3. Neutral
-4. Agree
-5. Strongly Agree
+4. Slightly enjoy
+5. Enjoy
 
 The assessment flow must:
 

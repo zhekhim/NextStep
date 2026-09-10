@@ -1,101 +1,101 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:untitled/modules/career_assessment/models/career_assessment_profile.dart';
 import 'package:untitled/modules/career_assessment/models/riasec_question.dart';
 import 'package:untitled/modules/career_assessment/services/riasec_career_matching_service.dart';
 import 'package:untitled/modules/career_assessment/services/riasec_scoring_service.dart';
+import 'package:untitled/modules/career_intelligence/models/career.dart';
 
 void main() {
-  final service = RiasecScoringService();
-
-  test('counts every response and applies both tie breakers', () {
-    const valuesByDimension = {
-      'R': [5, 5, 3, 3, 2, 2, 2, 2],
-      'I': [5, 4, 3, 3, 3, 2, 2, 2],
-      'A': [1, 1, 1, 1, 1, 1, 1, 1],
-      'S': [1, 1, 1, 1, 1, 1, 1, 1],
-      'E': [1, 1, 1, 1, 1, 1, 1, 1],
-      'C': [5, 4, 4, 3, 2, 2, 2, 2],
-    };
-    final questions = <RiasecQuestion>[];
-    final answers = <int, int>{};
-    for (final dimension in RiasecScoringService.dimensions) {
-      for (final value in valuesByDimension[dimension]!) {
-        answers[questions.length] = value;
-        questions.add(
-          RiasecQuestion(dimension: dimension, activity: 'Test activity'),
-        );
-      }
-    }
-
-    final result = service.calculate(questions: questions, answers: answers);
-
-    expect(result.code, 'RCI');
-    expect(result.rankedScores.first.total, 24);
-    expect(result.rankedScores[1].total, 24);
-    expect(result.rankedScores[2].total, 24);
+  test('calculates a dimension average and percentage', () {
+    final questions = _questions();
+    final answers = _answers(
+      questions,
+      overrides: {
+        'R': [4, 5, 3, 4, 5, 4, 3, 4],
+      },
+    );
+    final result = RiasecScoringService().calculate(
+      questions: questions,
+      answers: answers,
+    );
+    final realistic = result.rankedScores.firstWhere(
+      (score) => score.dimension == 'R',
+    );
+    expect(realistic.totalScore, 32);
+    expect(realistic.average, 4);
+    expect(realistic.percentage, 75);
   });
 
-  test('always produces a three-character code for a complete tie', () {
-    final questions = <RiasecQuestion>[];
-    final answers = <int, int>{};
-    for (final dimension in RiasecScoringService.dimensions) {
-      for (var count = 0; count < 8; count++) {
-        answers[questions.length] = 3;
-        questions.add(
-          RiasecQuestion(dimension: dimension, activity: 'Test activity'),
-        );
-      }
-    }
+  test('uses response counts and fixed RIASEC order to break ties', () {
+    final questions = _questions();
+    final answers = _answers(
+      questions,
+      overrides: {
+        'R': [5, 5, 3, 3, 3, 3, 3, 3],
+        'I': [5, 4, 4, 3, 3, 3, 3, 3],
+      },
+    );
+    final result = RiasecScoringService().calculate(
+      questions: questions,
+      answers: answers,
+    );
 
-    final result = service.calculate(questions: questions, answers: answers);
-
-    expect(result.code, 'RIA');
-    expect(result.code.length, 3);
-  });
-
-  test('career matcher returns five recommendations', () {
-    final result = RiasecResult([
-      const RiasecDimensionScore(
-        dimension: 'I',
-        total: 36,
-        enjoyCount: 4,
-        slightlyEnjoyCount: 3,
-      ),
-      const RiasecDimensionScore(
-        dimension: 'C',
-        total: 33,
-        enjoyCount: 3,
-        slightlyEnjoyCount: 3,
-      ),
-      const RiasecDimensionScore(
-        dimension: 'R',
-        total: 30,
-        enjoyCount: 2,
-        slightlyEnjoyCount: 4,
-      ),
-      const RiasecDimensionScore(
-        dimension: 'E',
-        total: 25,
-        enjoyCount: 1,
-        slightlyEnjoyCount: 3,
-      ),
-      const RiasecDimensionScore(
-        dimension: 'S',
-        total: 22,
-        enjoyCount: 1,
-        slightlyEnjoyCount: 2,
-      ),
-      const RiasecDimensionScore(
-        dimension: 'A',
-        total: 18,
-        enjoyCount: 0,
-        slightlyEnjoyCount: 2,
-      ),
+    expect(result.rankedScores[0].dimension, 'R');
+    expect(result.rankedScores[1].dimension, 'I');
+    expect(result.rankedScores.skip(2).map((score) => score.dimension), [
+      'A',
+      'S',
+      'E',
+      'C',
     ]);
+  });
 
-    final matches = RiasecCareerMatchingService().findTopMatches(result);
+  test('allows different question counts between dimensions', () {
+    final questions = _questions();
+    questions[0] = const RiasecQuestion(
+      id: 'I-extra',
+      dimension: 'I',
+      activity: 'Extra investigative question',
+    );
+    final answers = _answers(questions);
 
-    expect(matches, hasLength(5));
-    expect(matches.first.riasecCode, 'ICR');
+    final result = RiasecScoringService().calculate(
+      questions: questions,
+      answers: answers,
+    );
+
+    expect(result.rankedScores, hasLength(6));
+    expect(
+      result.rankedScores.firstWhere((score) => score.dimension == 'R').average,
+      3,
+    );
+    expect(
+      result.rankedScores.firstWhere((score) => score.dimension == 'I').average,
+      3,
+    );
+  });
+
+  test('matches profiles with the transparent difference formula', () {
+    final result = RiasecResult([
+      for (final dimension in RiasecScoringService.dimensions)
+        RiasecDimensionScore(dimension: dimension, average: 5, percentage: 100),
+    ]);
+    const career = Career(
+      id: 'career-1',
+      careerName: 'Test Career',
+      category: 'Test',
+      description: 'Test',
+    );
+    const profile = CareerAssessmentProfile(
+      careerId: 'career-1',
+      dimensionValues: {'R': 5, 'I': 5, 'A': 5, 'S': 5, 'E': 5, 'C': 5},
+    );
+    final matches = RiasecCareerMatchingService().findTopMatches(
+      result: result,
+      profiles: [profile],
+      careers: [career],
+    );
+    expect(matches.single.matchPercentage, 100);
   });
 
   test('RIASEC alignment weights the career code in priority order', () {
@@ -106,4 +106,32 @@ void main() {
 
     expect(alignment, 100);
   });
+}
+
+List<RiasecQuestion> _questions() {
+  return [
+    for (final dimension in RiasecScoringService.dimensions)
+      for (var index = 0; index < 8; index++)
+        RiasecQuestion(
+          id: '$dimension-$index',
+          dimension: dimension,
+          activity: '$dimension question ${index + 1}',
+        ),
+  ];
+}
+
+Map<int, int> _answers(
+  List<RiasecQuestion> questions, {
+  Map<String, List<int>> overrides = const {},
+}) {
+  final usedByDimension = <String, int>{};
+  return {
+    for (var index = 0; index < questions.length; index++)
+      index: () {
+        final dimension = questions[index].dimension;
+        final dimensionIndex = usedByDimension[dimension] ?? 0;
+        usedByDimension[dimension] = dimensionIndex + 1;
+        return overrides[dimension]?[dimensionIndex] ?? 3;
+      }(),
+  };
 }

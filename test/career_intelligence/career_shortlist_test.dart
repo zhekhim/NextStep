@@ -273,11 +273,17 @@ void main() {
     await tester.tap(find.text('None'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('High').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Interested').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Considering').last);
+    await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextFormField), '  Learn SQL  ');
     await tester.tap(find.text('Save Changes'));
     await tester.pumpAndSettle();
     expect(repository.updatedPriority, 'High');
     expect(repository.updatedNotes, '  Learn SQL  ');
+    expect(repository.updatedStatus, 'Considering');
   });
 
   testWidgets('Hub opens real Interested Careers and keeps placeholders', (
@@ -309,6 +315,7 @@ class _FakeRepository implements CareerShortlistRepository {
   String? removedId;
   String? updatedPriority;
   String? updatedNotes;
+  String? updatedStatus;
 
   @override
   Future<List<CareerShortlist>> getShortlistedCareers() async {
@@ -328,6 +335,7 @@ class _FakeRepository implements CareerShortlistRepository {
 
   @override
   Future<CareerShortlist> addCareer({
+    String status = 'Interested',
     required String careerId,
     String? priority,
     String? notes,
@@ -338,12 +346,14 @@ class _FakeRepository implements CareerShortlistRepository {
 
   @override
   Future<CareerShortlist> updateCareer({
+    String? status,
     required String shortlistId,
     required String? priority,
     required String? notes,
   }) async {
     updatedPriority = priority;
     updatedNotes = notes;
+    updatedStatus = status;
     final current = items.firstWhere((item) => item.id == shortlistId);
     return CareerShortlist(
       id: current.id,
@@ -351,6 +361,7 @@ class _FakeRepository implements CareerShortlistRepository {
       career: current.career,
       priority: CareerShortlist.validatePriority(priority),
       notes: CareerShortlist.normalizeNotes(notes),
+      status: status ?? current.status,
       createdAt: current.createdAt,
       updatedAt: current.updatedAt,
     );

@@ -20,11 +20,13 @@ abstract class CareerShortlistRepository {
   Future<List<CareerShortlist>> getShortlistedCareers();
   Future<CareerShortlist?> getShortlistForCareer(String careerId);
   Future<CareerShortlist> addCareer({
+    String status = 'Interested',
     required String careerId,
     String? priority,
     String? notes,
   });
   Future<CareerShortlist> updateCareer({
+    String? status,
     required String shortlistId,
     required String? priority,
     required String? notes,
@@ -40,7 +42,7 @@ class SupabaseCareerShortlistRepository implements CareerShortlistRepository {
   SupabaseCareerShortlistRepository._(this._client);
 
   static const _select = '''
-    id, user_id, priority, notes, created_at, updated_at,
+    id, user_id, priority, notes, status, created_at, updated_at,
     careers!inner(id, career_name, category, description, created_at, updated_at)
   ''';
 
@@ -77,6 +79,7 @@ class SupabaseCareerShortlistRepository implements CareerShortlistRepository {
 
   @override
   Future<CareerShortlist> addCareer({
+    String status = 'Interested',
     required String careerId,
     String? priority,
     String? notes,
@@ -91,6 +94,7 @@ class SupabaseCareerShortlistRepository implements CareerShortlistRepository {
             'career_id': careerId,
             'priority': validPriority,
             'notes': validNotes,
+            'status': CareerShortlist.validateStatus(status),
           })
           .select(_select)
           .single();
@@ -105,6 +109,7 @@ class SupabaseCareerShortlistRepository implements CareerShortlistRepository {
 
   @override
   Future<CareerShortlist> updateCareer({
+    String? status,
     required String shortlistId,
     required String? priority,
     required String? notes,
@@ -114,6 +119,7 @@ class SupabaseCareerShortlistRepository implements CareerShortlistRepository {
         .update({
           'priority': CareerShortlist.validatePriority(priority),
           'notes': CareerShortlist.normalizeNotes(notes),
+          if (status != null) 'status': CareerShortlist.validateStatus(status),
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', shortlistId)

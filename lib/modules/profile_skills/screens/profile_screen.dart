@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../career_intelligence/repositories/career_repository.dart';
 import '../models/profile.dart';
 import '../models/certification.dart';
 import '../models/user_skill.dart';
@@ -8,7 +9,6 @@ import '../repositories/certification_repository.dart';
 import '../repositories/profile_repository.dart';
 import '../repositories/profile_media_repository.dart';
 import '../repositories/skill_repository.dart';
-import '../services/profile_insights_service.dart';
 import 'certification_screen.dart';
 import 'edit_profile_screen.dart';
 import 'skill_portfolio_screen.dart';
@@ -85,6 +85,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           profile: profile,
           profileRepository: _profileRepository,
           onChangePhoto: _changeProfilePhoto,
+          careerRepository: CareerRepository(),
         ),
       ),
     );
@@ -188,45 +189,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  Future<void> _addRecommendedSkills(Profile profile) async {
-    final insights = ProfileInsightsService().analyse(
-      skills: _skills,
-      targetRoles: profile.targetedJobRoles,
-    );
-    if (insights.missingSkills.isEmpty) return;
-    try {
-      final catalog = await _skillRepository.getSkillCatalog();
-      var added = 0;
-      for (final name in insights.missingSkills) {
-        final match = catalog.where(
-          (item) => item.name.toLowerCase() == name.toLowerCase(),
-        );
-        if (match.isEmpty) continue;
-        try {
-          await _skillRepository.addSkill(
-            skill: match.first,
-            level: 'Beginner',
-          );
-          added++;
-        } on DuplicateSkillException {
-          continue;
-        }
-      }
-      await _reloadSkills();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$added recommended skill(s) added.')),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unable to add recommended skills.')),
-        );
-      }
-    }
-  }
-
   void _showNextStep(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$feature will be connected in the next step.')),
@@ -251,7 +213,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onRetrySkills: _reloadSkills,
         onEditProfile: () => _openEditProfile(_profile!),
         onManageSkills: _openSkills,
-        onAddRecommendations: () => _addRecommendedSkills(_profile!),
         onManageCertifications: () => Navigator.push<void>(
           context,
           MaterialPageRoute(
@@ -279,7 +240,6 @@ class _ProfileContent extends StatelessWidget {
     required this.onRetrySkills,
     required this.onEditProfile,
     required this.onManageSkills,
-    required this.onAddRecommendations,
     required this.onManageCertifications,
     required this.onDeleteAccount,
   });
@@ -291,7 +251,6 @@ class _ProfileContent extends StatelessWidget {
   final VoidCallback onRetrySkills;
   final VoidCallback onEditProfile;
   final VoidCallback onManageSkills;
-  final VoidCallback onAddRecommendations;
   final VoidCallback onManageCertifications;
   final VoidCallback onDeleteAccount;
 
@@ -339,12 +298,6 @@ class _ProfileContent extends StatelessWidget {
           hasError: skillsFailed,
           onManageSkills: onManageSkills,
           onRetry: onRetrySkills,
-        ),
-        const SizedBox(height: 20),
-        _MarketOutlookCard(
-          profile: profile,
-          skills: skills,
-          onAddRecommendations: onAddRecommendations,
         ),
         const SizedBox(height: 20),
         _CertificationsCard(
@@ -618,94 +571,6 @@ class _DetailsCard extends StatelessWidget {
               value: profile.targetedJobRoles.join(', '),
               showDivider: false,
             ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MarketOutlookCard extends StatelessWidget {
-  const _MarketOutlookCard({
-    required this.profile,
-    required this.skills,
-    required this.onAddRecommendations,
-  });
-
-  final Profile profile;
-  final List<UserSkill> skills;
-  final VoidCallback onAddRecommendations;
-
-  @override
-  Widget build(BuildContext context) {
-    final insights = ProfileInsightsService().analyse(
-      skills: skills,
-      targetRoles: profile.targetedJobRoles,
-    );
-    final market = insights.market;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF181818),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF222222)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'INDUSTRY MARKET OUTLOOK',
-            style: TextStyle(
-              color: Color(0xFFA8A8A8),
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.8,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  market.career,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              Chip(
-                label: Text(market.demandLabel),
-                labelStyle: const TextStyle(color: Color(0xFF33D17A)),
-                backgroundColor: const Color(0xFF123A2B),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Employment ${market.employmentRate.toStringAsFixed(1)}%  |  '
-            'Unemployment ${market.unemploymentRate.toStringAsFixed(1)}%',
-            style: const TextStyle(color: Colors.white),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            market.outlook,
-            style: const TextStyle(color: Color(0xFFA8A8A8)),
-          ),
-          if (insights.missingSkills.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              'Based on your target career, you should learn: '
-              '${insights.missingSkills.join(', ')}',
-              style: const TextStyle(color: Color(0xFFFFD166)),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: onAddRecommendations,
-              icon: const Icon(Icons.add_task_outlined),
-              label: const Text('Add recommendations to skills'),
-            ),
-          ],
         ],
       ),
     );

@@ -38,6 +38,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
   List<SkillTask> _tasks = const [];
   List<SkillMilestoneTemplate> _recommendations = const [];
   bool _loading = true;
+  bool _refreshing = false;
   String? _error;
   String? _busyTaskId;
 
@@ -51,14 +52,20 @@ class _SkillTaskListState extends State<SkillTaskList> {
   void didUpdateWidget(covariant SkillTaskList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.goalId != widget.goalId ||
-        oldWidget.skillId != widget.skillId) {
-      _load();
+        oldWidget.skillId != widget.skillId ||
+        oldWidget.currentLevel != widget.currentLevel ||
+        oldWidget.requiredLevel != widget.requiredLevel) {
+      _load(preserveContent: true);
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool preserveContent = false}) async {
     setState(() {
-      _loading = true;
+      if (preserveContent) {
+        _refreshing = true;
+      } else {
+        _loading = true;
+      }
       _error = null;
     });
     try {
@@ -86,12 +93,14 @@ class _SkillTaskListState extends State<SkillTaskList> {
         _tasks = tasks;
         _recommendations = recommendations;
         _loading = false;
+        _refreshing = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = 'Unable to load milestones.';
         _loading = false;
+        _refreshing = false;
       });
     }
   }
@@ -457,6 +466,10 @@ class _SkillTaskListState extends State<SkillTaskList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_refreshing) ...[
+            const LinearProgressIndicator(minHeight: 2),
+            const SizedBox(height: 8),
+          ],
           const Divider(color: AppColors.hairline),
           const SizedBox(height: 10),
           if (_recommendations.isNotEmpty) ...[

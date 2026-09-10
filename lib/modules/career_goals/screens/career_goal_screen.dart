@@ -332,19 +332,15 @@ class _GoalDetailsState extends State<_GoalDetails> {
         ),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    goal.career.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                goal.career.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-                _StatusBadge(status: goal.status),
-              ],
+              ),
             ),
             const SizedBox(height: 14),
             _Detail(label: 'Target Industry', value: goal.career.category),
@@ -539,7 +535,6 @@ class _GoalDetailsState extends State<_GoalDetails> {
         ),
         const SizedBox(height: 12),
         _SkillGapRow(
-          key: ValueKey(selectedSkill.requirement.skillId),
           goalId: goal.id,
           careerGoalTitle: goal.career.name,
           result: selectedSkill,
@@ -681,36 +676,6 @@ class _ChartLegend extends StatelessWidget {
         const SizedBox(width: 6),
         Text(label, style: const TextStyle(fontSize: 12)),
       ],
-    );
-  }
-}
-
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = switch (status) {
-      'Active' => AppColors.primaryLight,
-      'Completed' || 'Achieved' => AppColors.success,
-      _ => AppColors.textMuted,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
     );
   }
 }

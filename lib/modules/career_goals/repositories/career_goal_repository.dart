@@ -36,7 +36,7 @@ class CareerGoalRepository {
     final rows = await _supabase
         .from('career_goals')
         .select(
-          'id, user_id, preferred_state, target_graduation_year, expected_salary, status, careers(id, career_name, category)',
+          'id, user_id, preferred_state, target_graduation_year, expected_salary, careers(id, career_name, category, riasec_code)',
         )
         .eq('user_id', _userId)
         .limit(1);
@@ -51,7 +51,6 @@ class CareerGoalRepository {
       preferredState: row['preferred_state'] as String?,
       targetGraduationYear: row['target_graduation_year'] as int?,
       expectedSalary: (row['expected_salary'] as num?)?.toDouble(),
-      status: row['status'].toString(),
     );
   }
 
@@ -60,7 +59,6 @@ class CareerGoalRepository {
     String? preferredState,
     int? targetGraduationYear,
     double? expectedSalary,
-    String status = 'Active',
   }) async {
     await _supabase.from('career_goals').upsert({
       'user_id': _userId,
@@ -68,7 +66,6 @@ class CareerGoalRepository {
       'preferred_state': preferredState,
       'target_graduation_year': targetGraduationYear,
       'expected_salary': expectedSalary,
-      'status': status,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }, onConflict: 'user_id');
     await ProfileRepository(client: _supabase).syncTargetedRole(career.name);

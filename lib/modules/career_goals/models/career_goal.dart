@@ -3,14 +3,17 @@ class CareerOption {
     required this.id,
     required this.name,
     required this.category,
+    this.riasecCode,
   });
   final String id;
   final String name;
   final String category;
+  final String? riasecCode;
   factory CareerOption.fromMap(Map<String, dynamic> map) => CareerOption(
     id: map['id'].toString(),
     name: map['career_name'].toString(),
     category: map['category'].toString(),
+    riasecCode: map['riasec_code']?.toString(),
   );
 }
 
@@ -19,7 +22,6 @@ class CareerGoal {
     required this.id,
     required this.userId,
     required this.career,
-    required this.status,
     this.preferredState,
     this.targetGraduationYear,
     this.expectedSalary,
@@ -30,5 +32,4 @@ class CareerGoal {
   final String? preferredState;
   final int? targetGraduationYear;
   final double? expectedSalary;
-  final String status;
 }

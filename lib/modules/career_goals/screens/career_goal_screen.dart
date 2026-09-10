@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../profile_skills/models/user_skill.dart';
 import '../../profile_skills/repositories/skill_repository.dart';
 import '../models/career_goal.dart';
@@ -103,7 +104,7 @@ class _CareerGoalScreenState extends State<CareerGoalScreen> {
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text(
                   'Delete',
-                  style: TextStyle(color: Color(0xFFFF4D4D)),
+                  style: TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -180,7 +181,7 @@ class _EmptyGoal extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.track_changes, size: 56, color: Color(0xFF666666)),
+          const Icon(Icons.track_changes, size: 56, color: AppColors.textDisabled),
           const SizedBox(height: 20),
           const Text(
             'Set Your Career Goal',
@@ -190,7 +191,7 @@ class _EmptyGoal extends StatelessWidget {
           const Text(
             'Define your target career to unlock skill gap analysis.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFFA8A8A8)),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
@@ -198,7 +199,7 @@ class _EmptyGoal extends StatelessWidget {
             icon: const Icon(Icons.add),
             label: const Text('Create Career Goal'),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF0007CD),
+              backgroundColor: AppColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             ),
           ),
@@ -220,10 +221,12 @@ class _GoalDetailsState extends State<_GoalDetails> {
   final _skillGapService = SkillGapService();
   final _goalProgressService = GoalProgressService();
   final _skillTaskRepository = SkillTaskRepository();
+  late final StreamSubscription<void> _skillChangesSubscription;
   bool _loadingSkillGap = true;
   bool _loadingProgress = true;
   String? _skillGapError;
   String? _progressError;
+  String? _selectedSkillId;
   List<SkillGapResult> _skillGaps = const [];
   List<SkillTask> _upcomingMilestones = const [];
   GoalProgress _progress = const GoalProgress(completedCount: 0, totalCount: 0);
@@ -233,8 +236,17 @@ class _GoalDetailsState extends State<_GoalDetails> {
   @override
   void initState() {
     super.initState();
+    _skillChangesSubscription = SkillRepository.skillChanges.listen((_) {
+      if (mounted) _loadSkillGap();
+    });
     _loadSkillGap();
     _loadProgress();
+  }
+
+  @override
+  void dispose() {
+    _skillChangesSubscription.cancel();
+    super.dispose();
   }
 
   @override
@@ -283,11 +295,19 @@ class _GoalDetailsState extends State<_GoalDetails> {
         SkillRepository().getUserSkills(),
       ]);
       if (!mounted) return;
+      final skillGaps = _skillGapService.compare(
+        values[0] as List<CareerRequirement>,
+        values[1] as List<UserSkill>,
+      );
       setState(() {
-        _skillGaps = _skillGapService.compare(
-          values[0] as List<CareerRequirement>,
-          values[1] as List<UserSkill>,
-        );
+        _skillGaps = skillGaps;
+        if (!skillGaps.any(
+          (gap) => gap.requirement.skillId == _selectedSkillId,
+        )) {
+          _selectedSkillId = skillGaps.isEmpty
+              ? null
+              : skillGaps.first.requirement.skillId;
+        }
         _loadingSkillGap = false;
       });
     } catch (_) {
@@ -306,25 +326,21 @@ class _GoalDetailsState extends State<_GoalDetails> {
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF181818),
+          color: AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A2A)),
+          border: Border.all(color: AppColors.primarySoft),
         ),
         child: Column(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    goal.career.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                goal.career.name,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
                 ),
-                _StatusBadge(status: goal.status),
-              ],
+              ),
             ),
             const SizedBox(height: 14),
             _Detail(label: 'Target Industry', value: goal.career.category),
@@ -436,6 +452,10 @@ class _GoalDetailsState extends State<_GoalDetails> {
         .where((result) => result.status == SkillGapStatus.satisfied)
         .length;
     final percentage = _skillGapService.matchPercentage(_skillGaps);
+    final selectedSkill = _skillGaps.firstWhere(
+      (gap) => gap.requirement.skillId == _selectedSkillId,
+      orElse: () => _skillGaps.first,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -443,9 +463,9 @@ class _GoalDetailsState extends State<_GoalDetails> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF181818),
+            color: AppColors.surfaceBlue,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF2A2A2A)),
+            border: Border.all(color: AppColors.primarySoft),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -455,7 +475,7 @@ class _GoalDetailsState extends State<_GoalDetails> {
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A26FF),
+                  color: AppColors.cyan,
                 ),
               ),
               const SizedBox(height: 4),
@@ -469,7 +489,7 @@ class _GoalDetailsState extends State<_GoalDetails> {
                   '${_skillGaps.length} required skills.',
                   style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF888888),
+                    color: AppColors.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -492,13 +512,33 @@ class _GoalDetailsState extends State<_GoalDetails> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        ..._skillGaps.map(
-          (result) => _SkillGapRow(
-            goalId: goal.id,
-            careerGoalTitle: goal.career.name,
-            result: result,
-            onTasksChanged: _loadProgress,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _skillGaps
+                .map(
+                  (result) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(result.requirement.skillName),
+                      selected:
+                          result.requirement.skillId ==
+                          selectedSkill.requirement.skillId,
+                      onSelected: (_) => setState(
+                        () => _selectedSkillId = result.requirement.skillId,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
+        ),
+        const SizedBox(height: 12),
+        _SkillGapRow(
+          goalId: goal.id,
+          careerGoalTitle: goal.career.name,
+          result: selectedSkill,
+          onTasksChanged: _loadProgress,
         ),
       ],
     );
@@ -523,18 +563,18 @@ class _SkillRadarChart extends StatelessWidget {
       ...visibleGaps.map((gap) => _levelValue(gap.requirement.requiredLevel)),
       ...List<double>.filled(entryCount - visibleGaps.length, 0),
     ];
-    final colors = Theme.of(context).colorScheme;
-    final yourColor = colors.primary;
-    final requiredColor = colors.secondary;
+    const yourColor = AppColors.cyan;
+    const requiredColor = AppColors.primaryLight;
+    final labels = visibleGaps
+        .map((gap) => _wrapLabel(gap.requirement.skillName))
+        .toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final chartSize = (constraints.maxWidth * 0.78)
-            .clamp(210.0, 270.0)
-            .toDouble();
         return Center(
-          child: SizedBox.square(
-            dimension: chartSize,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            height: 320,
             child: RadarChart(
               RadarChartData(
                 dataSets: [
@@ -559,15 +599,15 @@ class _SkillRadarChart extends StatelessWidget {
                 ],
                 radarBackgroundColor: Colors.transparent,
                 borderData: FlBorderData(show: false),
-                radarBorderData: const BorderSide(color: Color(0xFF444444)),
+                radarBorderData: const BorderSide(color: AppColors.hairlineStrong),
                 radarShape: RadarShape.polygon,
                 tickCount: 3,
                 ticksTextStyle: const TextStyle(color: Colors.transparent),
-                tickBorderData: const BorderSide(color: Color(0xFF303030)),
-                gridBorderData: const BorderSide(color: Color(0xFF3A3A3A)),
+                tickBorderData: const BorderSide(color: AppColors.hairlineStrong),
+                gridBorderData: const BorderSide(color: AppColors.hairlineStrong),
                 titlePositionPercentageOffset: 0.18,
                 titleTextStyle: const TextStyle(
-                  color: Color(0xFFA8A8A8),
+                  color: AppColors.textSecondary,
                   fontSize: 10,
                 ),
                 getTitle: (index, angle) {
@@ -575,7 +615,7 @@ class _SkillRadarChart extends StatelessWidget {
                     return const RadarChartTitle(text: '');
                   }
                   return RadarChartTitle(
-                    text: _shortLabel(visibleGaps[index].requirement.skillName),
+                    text: labels[index],
                     angle: 0,
                   );
                 },
@@ -596,11 +636,23 @@ class _SkillRadarChart extends StatelessWidget {
     _ => 0,
   };
 
-  static String _shortLabel(String label) {
-    const maximumLength = 14;
-    return label.length <= maximumLength
-        ? label
-        : '${label.substring(0, maximumLength - 1)}…';
+  static String _wrapLabel(String label) {
+    const maximumLineLength = 16;
+    final lines = <String>[];
+    var currentLine = '';
+
+    for (final word in label.trim().split(RegExp(r'\s+'))) {
+      if (currentLine.isEmpty) {
+        currentLine = word;
+      } else if ('$currentLine $word'.length <= maximumLineLength) {
+        currentLine = '$currentLine $word';
+      } else {
+        lines.add(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine.isNotEmpty) lines.add(currentLine);
+    return lines.join('\n');
   }
 }
 
@@ -612,8 +664,7 @@ class _ChartLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final color = usePrimaryColor ? colors.primary : colors.secondary;
+    final color = usePrimaryColor ? AppColors.cyan : AppColors.primaryLight;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -629,35 +680,9 @@ class _ChartLegend extends StatelessWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({required this.status});
-  final String status;
-
-  @override
-  Widget build(BuildContext context) {
-    final active = status == 'Active';
-    final color = active ? const Color(0xFF33D17A) : const Color(0xFFA8A8A8);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.28)),
-      ),
-      child: Text(
-        status.toUpperCase(),
-        style: TextStyle(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-}
-
 class _SkillGapRow extends StatelessWidget {
   const _SkillGapRow({
+    super.key,
     required this.goalId,
     required this.careerGoalTitle,
     required this.result,
@@ -671,21 +696,21 @@ class _SkillGapRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (result.status) {
-      SkillGapStatus.satisfied => ('Satisfied', const Color(0xFF33D17A)),
+      SkillGapStatus.satisfied => ('Satisfied', AppColors.success),
       SkillGapStatus.insufficient => (
         'Needs Improvement',
-        const Color(0xFFFFCC4D),
+        AppColors.warning,
       ),
-      SkillGapStatus.missing => ('Missing', const Color(0xFFFF4D4D)),
+      SkillGapStatus.missing => ('Missing', AppColors.error),
     };
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -699,7 +724,7 @@ class _SkillGapRow extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             'Current Skill Level: ${result.currentLevel ?? 'None'}',
-            style: const TextStyle(color: Color(0xFFA8A8A8)),
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 10),
           Text(
@@ -710,6 +735,8 @@ class _SkillGapRow extends StatelessWidget {
             goalId: goalId,
             skillId: result.requirement.skillId,
             careerGoalTitle: careerGoalTitle,
+            currentLevel: result.currentLevel,
+            requiredLevel: result.requirement.requiredLevel,
             onTasksChanged: onTasksChanged,
           ),
         ],
@@ -728,9 +755,9 @@ class _SkillGapMessage extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: const Color(0xFF181818),
+      color: AppColors.surfaceCard,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFF2A2A2A)),
+      border: Border.all(color: AppColors.hairline),
     ),
     child: Column(
       children: [
@@ -754,7 +781,7 @@ class _Detail extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
+            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
         ),
         Flexible(
@@ -763,7 +790,7 @@ class _Detail extends StatelessWidget {
             textAlign: TextAlign.end,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFFC8CEFF),
+              color: AppColors.primaryLight,
               fontWeight: FontWeight.w500,
             ),
           ),

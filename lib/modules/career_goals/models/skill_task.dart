@@ -7,6 +7,9 @@ class SkillTask {
     required this.taskTitle,
     required this.dueDate,
     required this.isCompleted,
+    this.templateId,
+    this.description,
+    this.completionEvidence,
     this.completedAt,
     this.calendarEventId,
     this.reminderDaysBefore,
@@ -22,6 +25,9 @@ class SkillTask {
   final String taskTitle;
   final DateTime dueDate;
   final bool isCompleted;
+  final String? templateId;
+  final String? description;
+  final String? completionEvidence;
   final DateTime? completedAt;
   final String? calendarEventId;
   final int? reminderDaysBefore;
@@ -37,6 +43,9 @@ class SkillTask {
     taskTitle: json['task_title'].toString(),
     dueDate: DateTime.parse(json['due_date'].toString()),
     isCompleted: json['is_completed'] as bool? ?? false,
+    templateId: json['template_id'] as String?,
+    description: json['description'] as String?,
+    completionEvidence: json['completion_evidence'] as String?,
     completedAt: _dateTimeOrNull(json['completed_at']),
     calendarEventId: json['calendar_event_id'] as String?,
     reminderDaysBefore: json['reminder_days_before'] as int?,
@@ -53,6 +62,9 @@ class SkillTask {
     'task_title': taskTitle,
     'due_date': _dateOnly(dueDate),
     'is_completed': isCompleted,
+    'template_id': templateId,
+    'description': description,
+    'completion_evidence': completionEvidence,
     'completed_at': completedAt?.toUtc().toIso8601String(),
     'calendar_event_id': calendarEventId,
     'reminder_days_before': reminderDaysBefore,
@@ -70,4 +82,38 @@ class SkillTask {
       '${date.year.toString().padLeft(4, '0')}-'
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
+}
+
+class SkillMilestoneTemplate {
+  const SkillMilestoneTemplate({
+    required this.id,
+    required this.skillId,
+    required this.order,
+    required this.targetLevel,
+    required this.title,
+    required this.description,
+    required this.completionEvidence,
+    required this.suggestedDurationDays,
+  });
+
+  final String id;
+  final String skillId;
+  final int order;
+  final String targetLevel;
+  final String title;
+  final String description;
+  final String completionEvidence;
+  final int suggestedDurationDays;
+
+  factory SkillMilestoneTemplate.fromJson(Map<String, dynamic> json) =>
+      SkillMilestoneTemplate(
+        id: json['id'].toString(),
+        skillId: json['skill_id'].toString(),
+        order: json['milestone_order'] as int,
+        targetLevel: json['target_level'].toString(),
+        title: json['title'].toString(),
+        description: json['description'].toString(),
+        completionEvidence: json['completion_evidence'].toString(),
+        suggestedDurationDays: json['suggested_duration_days'] as int,
+      );
 }

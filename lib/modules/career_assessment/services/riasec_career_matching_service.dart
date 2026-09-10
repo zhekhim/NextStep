@@ -34,4 +34,21 @@ class RiasecCareerMatchingService {
     });
     return matches.take(limit).toList(growable: false);
   }
+
+  double alignmentPercentage({
+    required List<String> rankedDimensions,
+    required String careerCode,
+  }) {
+    if (rankedDimensions.length != 6 || careerCode.length != 3) return 0;
+    const weights = [50.0, 30.0, 20.0];
+    var alignment = 0.0;
+    for (var index = 0; index < careerCode.length; index++) {
+      final userPosition = rankedDimensions.indexOf(careerCode[index]);
+      if (userPosition >= 0) {
+        final positionDifference = (userPosition - index).abs();
+        alignment += weights[index] * (5 - positionDifference) / 5;
+      }
+    }
+    return alignment.clamp(0, 100);
+  }
 }

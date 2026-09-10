@@ -1,7 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../career_intelligence/repositories/career_repository.dart';
 import '../models/profile.dart';
 import '../models/certification.dart';
 import '../models/user_skill.dart';
@@ -33,6 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final CertificationRepository _certificationRepository;
   late final ProfileMediaRepository _profileMediaRepository;
   late final ImagePicker _imagePicker;
+  late final StreamSubscription<void> _skillChangesSubscription;
+  late final StreamSubscription<void> _profileChangesSubscription;
   Profile? _profile;
   bool _profileLoading = true;
   bool _profileFailed = false;
@@ -48,8 +52,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _certificationRepository = CertificationRepository();
     _profileMediaRepository = ProfileMediaRepository();
     _imagePicker = ImagePicker();
+    _skillChangesSubscription = SkillRepository.skillChanges.listen((_) {
+      if (mounted) _reloadSkills();
+    });
+    _profileChangesSubscription = ProfileRepository.profileChanges.listen((_) {
+      if (mounted) _loadProfile(showLoading: true);
+    });
     _loadProfile();
     _reloadSkills();
+  }
+
+  @override
+  void dispose() {
+    _skillChangesSubscription.cancel();
+    _profileChangesSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _loadProfile({bool showLoading = false}) async {
@@ -85,7 +102,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           profile: profile,
           profileRepository: _profileRepository,
           onChangePhoto: _changeProfilePhoto,
-          careerRepository: CareerRepository(),
         ),
       ),
     );
@@ -143,6 +159,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         );
       }
     }
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You will need to log in again to continue.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await Supabase.instance.client.auth.signOut();
   }
 
   Future<void> _reloadSkills() async {
@@ -221,6 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         onDeleteAccount: () => _showNextStep('Account deletion'),
+        onLogout: _logout,
       );
     }
 
@@ -242,6 +281,7 @@ class _ProfileContent extends StatelessWidget {
     required this.onManageSkills,
     required this.onManageCertifications,
     required this.onDeleteAccount,
+    required this.onLogout,
   });
 
   final Profile profile;
@@ -253,6 +293,7 @@ class _ProfileContent extends StatelessWidget {
   final VoidCallback onManageSkills;
   final VoidCallback onManageCertifications;
   final VoidCallback onDeleteAccount;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -321,6 +362,19 @@ class _ProfileContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 28),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout),
+            label: const Text('Log out'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFFF8A8A),
+              side: const BorderSide(color: Color(0xFFFF4D4D)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         const Divider(color: Color(0xFF222222)),
         const SizedBox(height: 12),
         TextButton.icon(

@@ -46,24 +46,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final result = await _authRepository.register(
+      await _authRepository.register(
         fullName: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
       if (!mounted) return;
 
-      final message = result.requiresEmailConfirmation
-          ? 'Account created. Check your email to confirm your account.'
-          : 'Account created successfully.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: const Color(0xFF33D17A)),
+        const SnackBar(
+          content: Text('Account created successfully.'),
+          backgroundColor: Color(0xFF33D17A),
+        ),
       );
       if (Navigator.of(context).canPop()) Navigator.of(context).pop();
     } on AuthException catch (error) {
+      debugPrint('Registration failed: ${error.message}');
       _showError(_friendlyAuthMessage(error.message));
-    } catch (_) {
-      _showError('Unable to create your account. Please try again.');
+    } catch (error) {
+      debugPrint('Registration failed unexpectedly: $error');
+      _showError('Registration failed: $error');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -76,7 +78,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return 'An account with this email already exists.';
     }
     if (normalized.contains('password')) return message;
-    return 'Registration failed. Please check your details and try again.';
+    if (normalized.contains('rate limit') || normalized.contains('too many')) {
+      return 'Too many registration attempts. Please wait and try again.';
+    }
+    if (normalized.contains('signup') && normalized.contains('disabled')) {
+      return 'Account registration is disabled in Supabase.';
+    }
+    if (normalized.contains('email')) return message;
+    return 'Registration failed: $message';
   }
 
   void _showError(String message) {

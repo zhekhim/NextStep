@@ -29,8 +29,9 @@ class SkillTaskRepository {
         .eq('user_id', _userId)
         .eq('goal_id', goalId)
         .eq('skill_id', skillId)
-        .order('is_completed')
-        .order('due_date');
+        .order('is_completed', ascending: true)
+        .order('due_date', ascending: true)
+        .order('created_at', ascending: true);
     return rows.map(SkillTask.fromJson).toList();
   }
 
@@ -40,9 +41,58 @@ class SkillTaskRepository {
         .select()
         .eq('user_id', _userId)
         .eq('goal_id', goalId)
-        .order('is_completed')
-        .order('due_date');
+        .order('is_completed', ascending: true)
+        .order('due_date', ascending: true)
+        .order('created_at', ascending: true);
     return rows.map(SkillTask.fromJson).toList();
+  }
+
+  Future<List<SkillMilestoneTemplate>> getRecommendedTemplates({
+    required String skillId,
+    required String? currentLevel,
+    required String requiredLevel,
+  }) async {
+    const ranks = {'Beginner': 1, 'Intermediate': 2, 'Advanced': 3};
+    final currentRank = ranks[currentLevel] ?? 0;
+    final requiredRank = ranks[requiredLevel] ?? 1;
+    if (currentRank >= requiredRank) return const [];
+
+    final rows = await _supabase
+        .from('skill_milestone_templates')
+        .select()
+        .eq('skill_id', skillId)
+        .order('milestone_order');
+    return rows
+        .map(SkillMilestoneTemplate.fromJson)
+        .where((template) {
+          final rank = ranks[template.targetLevel] ?? 0;
+          return rank > currentRank && rank <= requiredRank;
+        })
+        .toList(growable: false);
+  }
+
+  Future<void> addRecommendedPlan({
+    required String goalId,
+    required String skillId,
+    required List<SkillMilestoneTemplate> templates,
+  }) async {
+    var dueDate = DateTime.now();
+    final rows = <Map<String, dynamic>>[];
+    for (final template in templates) {
+      dueDate = dueDate.add(Duration(days: template.suggestedDurationDays));
+      rows.add({
+        'user_id': _userId,
+        'goal_id': goalId,
+        'skill_id': skillId,
+        'template_id': template.id,
+        'task_title': template.title,
+        'description': template.description,
+        'completion_evidence': template.completionEvidence,
+        'due_date': _dateOnly(dueDate),
+        'is_completed': false,
+      });
+    }
+    if (rows.isNotEmpty) await _supabase.from('skill_tasks').insert(rows);
   }
 
   Future<SkillTask> addTask({
@@ -50,6 +100,7 @@ class SkillTaskRepository {
     required String skillId,
     required String taskTitle,
     required DateTime dueDate,
+    String? description,
     int? reminderDaysBefore,
     int? notificationId,
   }) async {
@@ -60,6 +111,7 @@ class SkillTaskRepository {
           'goal_id': goalId,
           'skill_id': skillId,
           'task_title': taskTitle.trim(),
+          'description': _optionalText(description),
           'due_date': _dateOnly(dueDate),
           'is_completed': false,
           'completed_at': null,
@@ -76,6 +128,7 @@ class SkillTaskRepository {
     required SkillTask task,
     required String taskTitle,
     required DateTime dueDate,
+    String? description,
     int? reminderDaysBefore,
     int? notificationId,
   }) async {
@@ -83,6 +136,7 @@ class SkillTaskRepository {
         .from('skill_tasks')
         .update({
           'task_title': taskTitle.trim(),
+          'description': _optionalText(description),
           'due_date': _dateOnly(dueDate),
           'reminder_days_before': reminderDaysBefore,
           'notification_id': notificationId,
@@ -150,4 +204,9 @@ class SkillTaskRepository {
       '${date.year.toString().padLeft(4, '0')}-'
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
+
+  String? _optionalText(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
 }

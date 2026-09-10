@@ -93,29 +93,29 @@ class _EditSkillScreenState extends State<EditSkillScreen> {
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                DropdownButtonFormField<SkillCatalogItem>(
-                  initialValue: _selectedSkill,
-                  isExpanded: true,
-                  decoration: _fieldDecoration('Skill Name'),
-                  dropdownColor: const Color(0xFF222222),
-                  items: catalog
-                      .map(
-                        (skill) => DropdownMenuItem(
-                          value: skill,
-                          child: Text(
-                            skill.name,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
-                  onChanged: _saving
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            setState(() => _selectedSkill = value);
-                          }
-                        },
+                Autocomplete<SkillCatalogItem>(
+                  initialValue: TextEditingValue(text: _selectedSkill.name),
+                  displayStringForOption: (skill) => skill.name,
+                  optionsBuilder: (value) {
+                    final query = value.text.trim().toLowerCase();
+                    return catalog.where((skill) {
+                      return query.isEmpty ||
+                          skill.name.toLowerCase().contains(query) ||
+                          skill.category.toLowerCase().contains(query);
+                    });
+                  },
+                  onSelected: (value) =>
+                      setState(() => _selectedSkill = value),
+                  fieldViewBuilder:
+                      (context, controller, focusNode, onSubmitted) {
+                    return TextFormField(
+                      controller: controller,
+                      focusNode: focusNode,
+                      enabled: !_saving,
+                      decoration: _fieldDecoration('Search and select skill'),
+                      onFieldSubmitted: (_) => onSubmitted(),
+                    );
+                  },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(

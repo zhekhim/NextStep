@@ -66,9 +66,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (normalized.contains('invalid login credentials')) {
       return 'Incorrect email or password.';
     }
-    if (normalized.contains('email not confirmed')) {
-      return 'Confirm your email before logging in.';
-    }
     if (normalized.contains('rate limit') || normalized.contains('too many')) {
       return 'Too many login attempts. Please wait and try again.';
     }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/profile.dart';
@@ -8,6 +10,10 @@ class ProfileRepository {
   }
 
   ProfileRepository._(this._client);
+
+  static final _profileChanges = StreamController<void>.broadcast();
+
+  static Stream<void> get profileChanges => _profileChanges.stream;
 
   final SupabaseClient? _client;
 
@@ -20,6 +26,7 @@ class ProfileRepository {
     }
 
     Map<String, dynamic>? row;
+    String? goalCareerName;
     try {
       row = await _supabase
           .from('profiles')
@@ -28,6 +35,17 @@ class ProfileRepository {
           .maybeSingle();
     } on PostgrestException {
       row = null;
+    }
+    try {
+      final goal = await _supabase
+          .from('career_goals')
+          .select('careers(career_name)')
+          .eq('user_id', user.id)
+          .maybeSingle();
+      final career = goal?['careers'];
+      if (career is Map) goalCareerName = _text(career['career_name']);
+    } on PostgrestException {
+      goalCareerName = null;
     }
     final metadata = user.userMetadata ?? const <String, dynamic>{};
     final fullName =
@@ -48,7 +66,9 @@ class ProfileRepository {
       avatarUrl: _text(metadata['avatar_url']),
       title: _text(metadata['title']),
       bio: _text(metadata['bio']),
-      targetedJobRoles: _roles(metadata['targeted_job_roles']),
+      targetedJobRoles: goalCareerName == null
+          ? const []
+          : <String>[goalCareerName],
     );
   }
 
@@ -84,10 +104,23 @@ class ProfileRepository {
         data: {
           'title': title.trim(),
           'bio': bio.trim(),
-          'targeted_job_roles': targetedJobRoles,
         },
       ),
     );
+    _profileChanges.add(null);
+  }
+
+  Future<void> syncTargetedRole(String? careerName) async {
+    await _supabase.auth.updateUser(
+      UserAttributes(
+        data: {
+          'targeted_job_roles': careerName == null
+              ? const <String>[]
+              : <String>[careerName],
+        },
+      ),
+    );
+    _profileChanges.add(null);
   }
 
   String? _text(dynamic value) {
@@ -105,12 +138,4 @@ class ProfileRepository {
         .join(' ');
   }
 
-  List<String> _roles(Object? value) {
-    if (value is! List) return const [];
-    return value
-        .whereType<String>()
-        .map((role) => role.trim())
-        .where((role) => role.isNotEmpty)
-        .toList(growable: false);
-  }
 }

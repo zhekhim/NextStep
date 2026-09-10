@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../models/career_goal.dart';
 import '../repositories/career_goal_repository.dart';
 
@@ -20,7 +21,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
   late final TextEditingController _salaryController;
   List<CareerOption> _careers = const [];
   CareerOption? _career;
-  String _status = 'Active';
   bool _loading = true;
   bool _saving = false;
   String? _error;
@@ -38,7 +38,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     _salaryController = TextEditingController(
       text: widget.goal?.expectedSalary?.toStringAsFixed(0) ?? '',
     );
-    _status = widget.goal?.status ?? 'Active';
     _loadCareers();
   }
 
@@ -79,7 +78,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
             : _stateController.text.trim(),
         targetGraduationYear: int.tryParse(_yearController.text),
         expectedSalary: double.tryParse(_salaryController.text),
-        status: _status,
       );
       if (mounted) Navigator.pop(context, true);
     } catch (_) {
@@ -164,7 +162,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'Industry: ${_career!.category}',
-                        style: const TextStyle(color: Color(0xFFA8A8A8)),
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     ),
                   const SizedBox(height: 16),
@@ -209,23 +207,11 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                           : null;
                     },
                   ),
-                  const SizedBox(height: 16),
-                  DropdownButtonFormField<String>(
-                    initialValue: _status,
-                    decoration: const InputDecoration(
-                      labelText: 'Status',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const ['Active', 'Paused', 'Achieved']
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (value) => setState(() => _status = value!),
-                  ),
                   const SizedBox(height: 24),
                   FilledButton(
                     onPressed: _saving ? null : _save,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF0007CD),
+                      backgroundColor: AppColors.primary,
                       minimumSize: const Size.fromHeight(48),
                     ),
                     child: _saving

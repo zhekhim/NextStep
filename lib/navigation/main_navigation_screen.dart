@@ -16,13 +16,17 @@ class MainNavigationScreen extends StatefulWidget {
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
 
-  static const _screens = <Widget>[
-    HomeScreen(),
-    CareersHubScreen(),
-    RiasecTestScreen(),
-    CareerGoalScreen(),
-    ProfileScreen(),
+  late final _screens = <Widget>[
+    HomeScreen(onSelectSection: _selectSection),
+    const CareersHubScreen(),
+    const RiasecTestScreen(),
+    const CareerGoalScreen(),
+    const ProfileScreen(),
   ];
+
+  void _selectSection(int index) {
+    if (index != _selectedIndex) setState(() => _selectedIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,11 +52,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             );
           }),
           selectedIndex: _selectedIndex,
-          onDestinationSelected: (index) {
-            if (index != _selectedIndex) {
-              setState(() => _selectedIndex = index);
-            }
-          },
+          onDestinationSelected: _selectSection,
           destinations: const [
             NavigationDestination(
               icon: Icon(Icons.home_outlined),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../profile_skills/models/user_skill.dart';
 import '../../profile_skills/repositories/skill_repository.dart';
 import '../models/career_goal.dart';
@@ -103,7 +104,7 @@ class _CareerGoalScreenState extends State<CareerGoalScreen> {
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text(
                   'Delete',
-                  style: TextStyle(color: Color(0xFFFF4D4D)),
+                  style: TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -180,7 +181,7 @@ class _EmptyGoal extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.track_changes, size: 56, color: Color(0xFF666666)),
+          const Icon(Icons.track_changes, size: 56, color: AppColors.textDisabled),
           const SizedBox(height: 20),
           const Text(
             'Set Your Career Goal',
@@ -190,7 +191,7 @@ class _EmptyGoal extends StatelessWidget {
           const Text(
             'Define your target career to unlock skill gap analysis.',
             textAlign: TextAlign.center,
-            style: TextStyle(color: Color(0xFFA8A8A8)),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
@@ -198,7 +199,7 @@ class _EmptyGoal extends StatelessWidget {
             icon: const Icon(Icons.add),
             label: const Text('Create Career Goal'),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF0007CD),
+              backgroundColor: AppColors.primary,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
             ),
           ),
@@ -325,9 +326,9 @@ class _GoalDetailsState extends State<_GoalDetails> {
       Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF181818),
+          color: AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFF2A2A2A)),
+          border: Border.all(color: AppColors.primarySoft),
         ),
         child: Column(
           children: [
@@ -466,9 +467,9 @@ class _GoalDetailsState extends State<_GoalDetails> {
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF181818),
+            color: AppColors.surfaceBlue,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFF2A2A2A)),
+            border: Border.all(color: AppColors.primarySoft),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,7 +479,7 @@ class _GoalDetailsState extends State<_GoalDetails> {
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A26FF),
+                  color: AppColors.cyan,
                 ),
               ),
               const SizedBox(height: 4),
@@ -492,7 +493,7 @@ class _GoalDetailsState extends State<_GoalDetails> {
                   '${_skillGaps.length} required skills.',
                   style: const TextStyle(
                     fontSize: 11,
-                    color: Color(0xFF888888),
+                    color: AppColors.textMuted,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -567,9 +568,8 @@ class _SkillRadarChart extends StatelessWidget {
       ...visibleGaps.map((gap) => _levelValue(gap.requirement.requiredLevel)),
       ...List<double>.filled(entryCount - visibleGaps.length, 0),
     ];
-    final colors = Theme.of(context).colorScheme;
-    final yourColor = colors.primary;
-    final requiredColor = colors.secondary;
+    const yourColor = AppColors.cyan;
+    const requiredColor = AppColors.primaryLight;
     final labels = visibleGaps
         .map((gap) => _wrapLabel(gap.requirement.skillName))
         .toList();
@@ -604,15 +604,15 @@ class _SkillRadarChart extends StatelessWidget {
                 ],
                 radarBackgroundColor: Colors.transparent,
                 borderData: FlBorderData(show: false),
-                radarBorderData: const BorderSide(color: Color(0xFF444444)),
+                radarBorderData: const BorderSide(color: AppColors.hairlineStrong),
                 radarShape: RadarShape.polygon,
                 tickCount: 3,
                 ticksTextStyle: const TextStyle(color: Colors.transparent),
-                tickBorderData: const BorderSide(color: Color(0xFF303030)),
-                gridBorderData: const BorderSide(color: Color(0xFF3A3A3A)),
+                tickBorderData: const BorderSide(color: AppColors.hairlineStrong),
+                gridBorderData: const BorderSide(color: AppColors.hairlineStrong),
                 titlePositionPercentageOffset: 0.18,
                 titleTextStyle: const TextStyle(
-                  color: Color(0xFFA8A8A8),
+                  color: AppColors.textSecondary,
                   fontSize: 10,
                 ),
                 getTitle: (index, angle) {
@@ -669,8 +669,7 @@ class _ChartLegend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final color = usePrimaryColor ? colors.primary : colors.secondary;
+    final color = usePrimaryColor ? AppColors.cyan : AppColors.primaryLight;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -692,8 +691,11 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final active = status == 'Active';
-    final color = active ? const Color(0xFF33D17A) : const Color(0xFFA8A8A8);
+    final color = switch (status) {
+      'Active' => AppColors.primaryLight,
+      'Completed' || 'Achieved' => AppColors.success,
+      _ => AppColors.textMuted,
+    };
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
@@ -729,21 +731,21 @@ class _SkillGapRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (result.status) {
-      SkillGapStatus.satisfied => ('Satisfied', const Color(0xFF33D17A)),
+      SkillGapStatus.satisfied => ('Satisfied', AppColors.success),
       SkillGapStatus.insufficient => (
         'Needs Improvement',
-        const Color(0xFFFFCC4D),
+        AppColors.warning,
       ),
-      SkillGapStatus.missing => ('Missing', const Color(0xFFFF4D4D)),
+      SkillGapStatus.missing => ('Missing', AppColors.error),
     };
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -757,7 +759,7 @@ class _SkillGapRow extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             'Current Skill Level: ${result.currentLevel ?? 'None'}',
-            style: const TextStyle(color: Color(0xFFA8A8A8)),
+            style: const TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 10),
           Text(
@@ -768,6 +770,8 @@ class _SkillGapRow extends StatelessWidget {
             goalId: goalId,
             skillId: result.requirement.skillId,
             careerGoalTitle: careerGoalTitle,
+            currentLevel: result.currentLevel,
+            requiredLevel: result.requirement.requiredLevel,
             onTasksChanged: onTasksChanged,
           ),
         ],
@@ -786,9 +790,9 @@ class _SkillGapMessage extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(20),
     decoration: BoxDecoration(
-      color: const Color(0xFF181818),
+      color: AppColors.surfaceCard,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFF2A2A2A)),
+      border: Border.all(color: AppColors.hairline),
     ),
     child: Column(
       children: [
@@ -812,7 +816,7 @@ class _Detail extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
+            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
           ),
         ),
         Flexible(
@@ -821,7 +825,7 @@ class _Detail extends StatelessWidget {
             textAlign: TextAlign.end,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFFC8CEFF),
+              color: AppColors.primaryLight,
               fontWeight: FontWeight.w500,
             ),
           ),

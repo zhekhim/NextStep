@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../models/career_goal.dart';
 import '../repositories/career_goal_repository.dart';
 
@@ -164,7 +165,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         'Industry: ${_career!.category}',
-                        style: const TextStyle(color: Color(0xFFA8A8A8)),
+                        style: const TextStyle(color: AppColors.textSecondary),
                       ),
                     ),
                   const SizedBox(height: 16),
@@ -225,7 +226,7 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                   FilledButton(
                     onPressed: _saving ? null : _save,
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF0007CD),
+                      backgroundColor: AppColors.primary,
                       minimumSize: const Size.fromHeight(48),
                     ),
                     child: _saving

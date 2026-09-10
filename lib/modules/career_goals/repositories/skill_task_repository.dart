@@ -47,6 +47,54 @@ class SkillTaskRepository {
     return rows.map(SkillTask.fromJson).toList();
   }
 
+  Future<List<SkillMilestoneTemplate>> getRecommendedTemplates({
+    required String skillId,
+    required String? currentLevel,
+    required String requiredLevel,
+  }) async {
+    const ranks = {'Beginner': 1, 'Intermediate': 2, 'Advanced': 3};
+    final currentRank = ranks[currentLevel] ?? 0;
+    final requiredRank = ranks[requiredLevel] ?? 1;
+    if (currentRank >= requiredRank) return const [];
+
+    final rows = await _supabase
+        .from('skill_milestone_templates')
+        .select()
+        .eq('skill_id', skillId)
+        .order('milestone_order');
+    return rows
+        .map(SkillMilestoneTemplate.fromJson)
+        .where((template) {
+          final rank = ranks[template.targetLevel] ?? 0;
+          return rank > currentRank && rank <= requiredRank;
+        })
+        .toList(growable: false);
+  }
+
+  Future<void> addRecommendedPlan({
+    required String goalId,
+    required String skillId,
+    required List<SkillMilestoneTemplate> templates,
+  }) async {
+    var dueDate = DateTime.now();
+    final rows = <Map<String, dynamic>>[];
+    for (final template in templates) {
+      dueDate = dueDate.add(Duration(days: template.suggestedDurationDays));
+      rows.add({
+        'user_id': _userId,
+        'goal_id': goalId,
+        'skill_id': skillId,
+        'template_id': template.id,
+        'task_title': template.title,
+        'description': template.description,
+        'completion_evidence': template.completionEvidence,
+        'due_date': _dateOnly(dueDate),
+        'is_completed': false,
+      });
+    }
+    if (rows.isNotEmpty) await _supabase.from('skill_tasks').insert(rows);
+  }
+
   Future<SkillTask> addTask({
     required String goalId,
     required String skillId,

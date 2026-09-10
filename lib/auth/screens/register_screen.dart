@@ -46,18 +46,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     setState(() => _isLoading = true);
     try {
-      final result = await _authRepository.register(
+      await _authRepository.register(
         fullName: _nameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
       if (!mounted) return;
 
-      final message = result.requiresEmailConfirmation
-          ? 'Account created. Check your email to confirm your account.'
-          : 'Account created successfully.';
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: const Color(0xFF33D17A)),
+        const SnackBar(
+          content: Text('Account created successfully.'),
+          backgroundColor: Color(0xFF33D17A),
+        ),
       );
       if (Navigator.of(context).canPop()) Navigator.of(context).pop();
     } on AuthException catch (error) {

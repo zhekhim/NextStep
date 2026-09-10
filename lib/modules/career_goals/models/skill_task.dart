@@ -83,3 +83,37 @@ class SkillTask {
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
 }
+
+class SkillMilestoneTemplate {
+  const SkillMilestoneTemplate({
+    required this.id,
+    required this.skillId,
+    required this.order,
+    required this.targetLevel,
+    required this.title,
+    required this.description,
+    required this.completionEvidence,
+    required this.suggestedDurationDays,
+  });
+
+  final String id;
+  final String skillId;
+  final int order;
+  final String targetLevel;
+  final String title;
+  final String description;
+  final String completionEvidence;
+  final int suggestedDurationDays;
+
+  factory SkillMilestoneTemplate.fromJson(Map<String, dynamic> json) =>
+      SkillMilestoneTemplate(
+        id: json['id'].toString(),
+        skillId: json['skill_id'].toString(),
+        order: json['milestone_order'] as int,
+        targetLevel: json['target_level'].toString(),
+        title: json['title'].toString(),
+        description: json['description'].toString(),
+        completionEvidence: json['completion_evidence'].toString(),
+        suggestedDurationDays: json['suggested_duration_days'] as int,
+      );
+}

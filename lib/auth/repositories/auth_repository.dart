@@ -1,11 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-class RegistrationResult {
-  const RegistrationResult({required this.requiresEmailConfirmation});
-
-  final bool requiresEmailConfirmation;
-}
-
 class LoginResult {
   const LoginResult({required this.userId});
 
@@ -19,7 +13,7 @@ class AuthRepository {
 
   SupabaseClient get _supabase => _client ?? Supabase.instance.client;
 
-  Future<RegistrationResult> register({
+  Future<void> register({
     required String fullName,
     required String email,
     required String password,
@@ -30,13 +24,9 @@ class AuthRepository {
       data: {'full_name': fullName.trim()},
     );
 
-    if (response.user == null) {
+    if (response.user == null || response.session == null) {
       throw const AuthException('Account registration was not completed.');
     }
-
-    return RegistrationResult(
-      requiresEmailConfirmation: response.session == null,
-    );
   }
 
   Future<LoginResult> login({

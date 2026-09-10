@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../services/goal_progress_service.dart';
 
 class GoalProgressCard extends StatelessWidget {
@@ -14,9 +15,9 @@ class GoalProgressCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.surfaceBlue,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF2A2A2A)),
+        border: Border.all(color: AppColors.primarySoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -29,7 +30,7 @@ class GoalProgressCard extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A26FF),
+                  color: AppColors.primaryLight,
                 ),
               ),
               const SizedBox(width: 10),
@@ -40,7 +41,7 @@ class GoalProgressCard extends StatelessWidget {
                     hasMilestones
                         ? '${progress.completedCount} / ${progress.totalCount} milestones completed'
                         : 'No milestones added yet',
-                    style: const TextStyle(color: Color(0xFFA8A8A8)),
+                    style: const TextStyle(color: AppColors.textSecondary),
                   ),
                 ),
               ),
@@ -51,14 +52,16 @@ class GoalProgressCard extends StatelessWidget {
             value: progress.progressValue,
             minHeight: 8,
             borderRadius: BorderRadius.circular(4),
-            color: const Color(0xFF0007CD),
-            backgroundColor: const Color(0xFF2A2A2A),
+            color: progress.progressValue == 1
+                ? AppColors.success
+                : AppColors.primary,
+            backgroundColor: AppColors.hairlineStrong,
           ),
           if (!hasMilestones) ...[
             const SizedBox(height: 10),
             const Text(
               'Add development milestones under a required skill to start tracking progress.',
-              style: TextStyle(fontSize: 12, color: Color(0xFF888888)),
+              style: TextStyle(fontSize: 12, color: AppColors.textMuted),
             ),
           ],
         ],

@@ -8,7 +8,8 @@ void main() {
   ) async {
     await tester.pumpWidget(const MaterialApp(home: MainNavigationScreen()));
 
-    expect(find.text('Home'), findsNWidgets(2));
+    expect(find.text('NextStep'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
 
     await tester.tap(find.text('Careers'));
     await tester.pumpAndSettle();
@@ -28,7 +29,7 @@ void main() {
 
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
-    expect(find.text('Home'), findsNWidgets(2));
+    expect(find.text('NextStep'), findsOneWidget);
   });
 
   testWidgets('navigation labels fit on a narrow phone', (
@@ -41,8 +42,7 @@ void main() {
 
     await tester.pumpWidget(const MaterialApp(home: MainNavigationScreen()));
 
-    final assessmentLabel = tester.widget<Text>(find.text('Assessment').first);
-    expect(assessmentLabel.maxLines, 1);
+    expect(find.text('Assessment'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/user_skill.dart';
@@ -17,6 +19,12 @@ class SkillRepository {
   }
 
   SkillRepository._(this._client);
+
+  static final _skillChanges = StreamController<void>.broadcast();
+
+  static Stream<void> get skillChanges => _skillChanges.stream;
+
+  static void notifySkillsChanged() => _skillChanges.add(null);
 
   final SupabaseClient? _client;
 
@@ -91,12 +99,14 @@ class SkillRepository {
           })
           .select('id, user_id, skill_level')
           .single();
-      return UserSkill(
+      final userSkill = UserSkill(
         id: row['id'].toString(),
         userId: row['user_id'].toString(),
         skill: skill,
         level: row['skill_level'].toString(),
       );
+      notifySkillsChanged();
+      return userSkill;
     } on PostgrestException catch (error) {
       if (error.code == '23505') throw DuplicateSkillException(skill.name);
       rethrow;
@@ -121,12 +131,14 @@ class SkillRepository {
           .eq('user_id', _userId)
           .select('id, user_id, skill_level')
           .single();
-      return UserSkill(
+      final updatedSkill = UserSkill(
         id: row['id'].toString(),
         userId: row['user_id'].toString(),
         skill: skill,
         level: row['skill_level'].toString(),
       );
+      notifySkillsChanged();
+      return updatedSkill;
     } on PostgrestException catch (error) {
       if (error.code == '23505') throw DuplicateSkillException(skill.name);
       rethrow;
@@ -139,6 +151,7 @@ class SkillRepository {
         .delete()
         .eq('id', userSkillId)
         .eq('user_id', _userId);
+    notifySkillsChanged();
   }
 
   void _validateLevel(String level) {

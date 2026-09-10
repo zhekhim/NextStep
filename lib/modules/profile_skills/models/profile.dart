@@ -33,6 +33,7 @@ class Profile {
     String? title,
     String? bio,
     List<String>? targetedJobRoles,
+    String? avatarUrl,
   }) {
     return Profile(
       userId: userId,
@@ -42,7 +43,7 @@ class Profile {
       major: major ?? this.major,
       yearOfStudy: yearOfStudy ?? this.yearOfStudy,
       preferredEmploymentState: preferredEmploymentState,
-      avatarUrl: avatarUrl,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
       title: title ?? this.title,
       bio: bio ?? this.bio,
       targetedJobRoles: targetedJobRoles ?? this.targetedJobRoles,

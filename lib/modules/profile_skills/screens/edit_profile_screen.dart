@@ -9,10 +9,12 @@ class EditProfileScreen extends StatefulWidget {
     super.key,
     required this.profile,
     this.profileRepository,
+    this.onChangePhoto,
   });
 
   final Profile profile;
   final ProfileRepository? profileRepository;
+  final VoidCallback? onChangePhoto;
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -120,6 +122,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF181818),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: const Color(0xFF0007CD),
+                    foregroundImage: widget.profile.avatarUrl == null
+                        ? null
+                        : NetworkImage(widget.profile.avatarUrl!),
+                    child: widget.profile.avatarUrl == null
+                        ? Text(widget.profile.initials)
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : widget.onChangePhoto,
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: const Text('Change profile photo'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _fullNameController,
               enabled: !_saving,

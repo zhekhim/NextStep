@@ -95,13 +95,17 @@ class _EditSkillScreenState extends State<EditSkillScreen> {
               children: [
                 DropdownButtonFormField<SkillCatalogItem>(
                   initialValue: _selectedSkill,
+                  isExpanded: true,
                   decoration: _fieldDecoration('Skill Name'),
                   dropdownColor: const Color(0xFF222222),
                   items: catalog
                       .map(
                         (skill) => DropdownMenuItem(
                           value: skill,
-                          child: Text(skill.name),
+                          child: Text(
+                            skill.name,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
                       )
                       .toList(),

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/validators.dart';
+import '../../career_intelligence/models/career.dart';
+import '../../career_intelligence/repositories/career_repository.dart';
 import '../models/profile.dart';
 import '../repositories/profile_repository.dart';
 
@@ -10,11 +12,13 @@ class EditProfileScreen extends StatefulWidget {
     required this.profile,
     this.profileRepository,
     this.onChangePhoto,
+    this.careerRepository,
   });
 
   final Profile profile;
   final ProfileRepository? profileRepository;
   final VoidCallback? onChangePhoto;
+  final CareerRepository? careerRepository;
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -23,12 +27,14 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late final ProfileRepository _repository;
+  late final CareerRepository _careerRepository;
+  late final Future<List<Career>> _careers;
   late final TextEditingController _fullNameController;
   late final TextEditingController _universityController;
   late final TextEditingController _majorController;
   late final TextEditingController _titleController;
   late final TextEditingController _bioController;
-  late final TextEditingController _rolesController;
+  String? _selectedRole;
   int? _studyYear;
   bool _saving = false;
   String? _saveError;
@@ -37,6 +43,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _repository = widget.profileRepository ?? ProfileRepository();
+    _careerRepository = widget.careerRepository ?? CareerRepository();
+    _careers = _careerRepository.getCareers();
     _fullNameController = TextEditingController(text: widget.profile.fullName);
     _universityController = TextEditingController(
       text: widget.profile.university,
@@ -44,9 +52,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _majorController = TextEditingController(text: widget.profile.major);
     _titleController = TextEditingController(text: widget.profile.title);
     _bioController = TextEditingController(text: widget.profile.bio);
-    _rolesController = TextEditingController(
-      text: widget.profile.targetedJobRoles.join(', '),
-    );
+    _selectedRole = widget.profile.targetedJobRoles.isEmpty
+        ? null
+        : widget.profile.targetedJobRoles.first;
     _studyYear = int.tryParse(widget.profile.yearOfStudy ?? '');
   }
 
@@ -57,7 +65,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _majorController.dispose();
     _titleController.dispose();
     _bioController.dispose();
-    _rolesController.dispose();
     super.dispose();
   }
 
@@ -76,11 +83,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         studyYear: _studyYear!,
         title: _titleController.text,
         bio: _bioController.text,
-        targetedJobRoles: _rolesController.text
-            .split(',')
-            .map((role) => role.trim())
-            .where((role) => role.isNotEmpty)
-            .toList(),
+        targetedJobRoles: _selectedRole == null ? const [] : [_selectedRole!],
       );
       if (mounted) {
         Navigator.pop(
@@ -92,11 +95,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             yearOfStudy: _studyYear!.toString(),
             title: _titleController.text.trim(),
             bio: _bioController.text.trim(),
-            targetedJobRoles: _rolesController.text
-                .split(',')
-                .map((role) => role.trim())
-                .where((role) => role.isNotEmpty)
-                .toList(),
+            targetedJobRoles: _selectedRole == null ? const [] : [_selectedRole!],
           ),
         );
       }
@@ -201,13 +200,44 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               decoration: _decoration('Bio'),
             ),
             const SizedBox(height: 16),
-            TextFormField(
-              controller: _rolesController,
-              enabled: !_saving,
-              decoration: _decoration(
-                'Targeted Job Roles',
-                helperText: 'Separate multiple roles with commas.',
-              ),
+            FutureBuilder<List<Career>>(
+              future: _careers,
+              builder: (context, snapshot) {
+                final careers = snapshot.data ?? const <Career>[];
+                final selectedValue = careers.any(
+                  (career) => career.careerName == _selectedRole,
+                )
+                    ? _selectedRole
+                    : null;
+                return DropdownButtonFormField<String>(
+                  initialValue: selectedValue,
+                  isExpanded: true,
+                  decoration: _decoration('Targeted Job Role'),
+                  dropdownColor: const Color(0xFF222222),
+                  hint: snapshot.connectionState == ConnectionState.waiting
+                      ? const Text('Loading careers...')
+                      : const Text('Select a career'),
+                  items: careers
+                      .map(
+                        (career) => DropdownMenuItem(
+                          value: career.careerName,
+                          child: Text(
+                            career.careerName,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: _saving || careers.isEmpty
+                      ? null
+                      : (value) => setState(() => _selectedRole = value),
+                  validator: (value) => value == null
+                      ? snapshot.hasError
+                          ? 'Unable to load careers.'
+                          : 'Please select a target career.'
+                      : null,
+                );
+              },
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(

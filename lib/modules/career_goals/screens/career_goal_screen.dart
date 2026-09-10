@@ -7,9 +7,14 @@ import '../../profile_skills/models/user_skill.dart';
 import '../../profile_skills/repositories/skill_repository.dart';
 import '../models/career_goal.dart';
 import '../models/career_requirement.dart';
+import '../models/skill_task.dart';
 import '../repositories/career_goal_repository.dart';
+import '../repositories/skill_task_repository.dart';
+import '../services/goal_progress_service.dart';
 import '../services/skill_gap_service.dart';
+import '../widgets/goal_progress_card.dart';
 import '../widgets/skill_task_list.dart';
+import '../widgets/upcoming_milestones.dart';
 import 'add_goal_screen.dart';
 
 class CareerGoalScreen extends StatefulWidget {
@@ -213,9 +218,15 @@ class _GoalDetails extends StatefulWidget {
 
 class _GoalDetailsState extends State<_GoalDetails> {
   final _skillGapService = SkillGapService();
+  final _goalProgressService = GoalProgressService();
+  final _skillTaskRepository = SkillTaskRepository();
   bool _loadingSkillGap = true;
+  bool _loadingProgress = true;
   String? _skillGapError;
+  String? _progressError;
   List<SkillGapResult> _skillGaps = const [];
+  List<SkillTask> _upcomingMilestones = const [];
+  GoalProgress _progress = const GoalProgress(completedCount: 0, totalCount: 0);
 
   CareerGoal get goal => widget.goal;
 
@@ -223,6 +234,7 @@ class _GoalDetailsState extends State<_GoalDetails> {
   void initState() {
     super.initState();
     _loadSkillGap();
+    _loadProgress();
   }
 
   @override
@@ -230,6 +242,33 @@ class _GoalDetailsState extends State<_GoalDetails> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.goal.career.id != widget.goal.career.id) {
       _loadSkillGap();
+    }
+    if (oldWidget.goal.id != widget.goal.id) {
+      _loadProgress();
+    }
+  }
+
+  Future<void> _loadProgress() async {
+    setState(() {
+      _loadingProgress = true;
+      _progressError = null;
+    });
+    try {
+      final milestones = await _skillTaskRepository.getTasksForGoal(goal.id);
+      if (!mounted) return;
+      setState(() {
+        _progress = _goalProgressService.calculate(milestones);
+        _upcomingMilestones = _goalProgressService.prioritizedUpcoming(
+          milestones,
+        );
+        _loadingProgress = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _progressError = 'Unable to load development progress.';
+        _loadingProgress = false;
+      });
     }
   }
 
@@ -308,13 +347,68 @@ class _GoalDetailsState extends State<_GoalDetails> {
       ),
       const SizedBox(height: 24),
       const Text(
-        'Skill Gap Overview',
+        'Development Progress',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+      ),
+      const SizedBox(height: 12),
+      _buildProgress(),
+      const SizedBox(height: 24),
+      const Text(
+        'Upcoming Milestones',
+        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+      ),
+      const SizedBox(height: 12),
+      _buildUpcomingMilestones(),
+      const SizedBox(height: 24),
+      const Text(
+        'Skill Gap',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
       ),
       const SizedBox(height: 12),
       _buildSkillGap(),
     ],
   );
+
+  Widget _buildProgress() {
+    if (_loadingProgress) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_progressError != null) {
+      return _SkillGapMessage(
+        message: _progressError!,
+        action: OutlinedButton(
+          onPressed: _loadProgress,
+          child: const Text('Retry'),
+        ),
+      );
+    }
+    return GoalProgressCard(progress: _progress);
+  }
+
+  Widget _buildUpcomingMilestones() {
+    if (_loadingProgress) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_progressError != null) {
+      return _SkillGapMessage(
+        message: 'Unable to load upcoming milestones.',
+        action: OutlinedButton(
+          onPressed: _loadProgress,
+          child: const Text('Retry'),
+        ),
+      );
+    }
+    return UpcomingMilestones(
+      milestones: _upcomingMilestones,
+      progressService: _goalProgressService,
+    );
+  }
 
   Widget _buildSkillGap() {
     if (_loadingSkillGap) {
@@ -399,7 +493,12 @@ class _GoalDetailsState extends State<_GoalDetails> {
         ),
         const SizedBox(height: 12),
         ..._skillGaps.map(
-          (result) => _SkillGapRow(goalId: goal.id, result: result),
+          (result) => _SkillGapRow(
+            goalId: goal.id,
+            careerGoalTitle: goal.career.name,
+            result: result,
+            onTasksChanged: _loadProgress,
+          ),
         ),
       ],
     );
@@ -558,9 +657,16 @@ class _StatusBadge extends StatelessWidget {
 }
 
 class _SkillGapRow extends StatelessWidget {
-  const _SkillGapRow({required this.goalId, required this.result});
+  const _SkillGapRow({
+    required this.goalId,
+    required this.careerGoalTitle,
+    required this.result,
+    required this.onTasksChanged,
+  });
   final String goalId;
+  final String careerGoalTitle;
   final SkillGapResult result;
+  final VoidCallback onTasksChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -600,7 +706,12 @@ class _SkillGapRow extends StatelessWidget {
             label,
             style: TextStyle(color: color, fontWeight: FontWeight.w600),
           ),
-          SkillTaskList(goalId: goalId, skillId: result.requirement.skillId),
+          SkillTaskList(
+            goalId: goalId,
+            skillId: result.requirement.skillId,
+            careerGoalTitle: careerGoalTitle,
+            onTasksChanged: onTasksChanged,
+          ),
         ],
       ),
     );

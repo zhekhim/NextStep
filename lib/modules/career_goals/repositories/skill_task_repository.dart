@@ -34,11 +34,24 @@ class SkillTaskRepository {
     return rows.map(SkillTask.fromJson).toList();
   }
 
+  Future<List<SkillTask>> getTasksForGoal(String goalId) async {
+    final rows = await _supabase
+        .from('skill_tasks')
+        .select()
+        .eq('user_id', _userId)
+        .eq('goal_id', goalId)
+        .order('is_completed')
+        .order('due_date');
+    return rows.map(SkillTask.fromJson).toList();
+  }
+
   Future<SkillTask> addTask({
     required String goalId,
     required String skillId,
     required String taskTitle,
     required DateTime dueDate,
+    int? reminderDaysBefore,
+    int? notificationId,
   }) async {
     final row = await _supabase
         .from('skill_tasks')
@@ -51,6 +64,8 @@ class SkillTaskRepository {
           'is_completed': false,
           'completed_at': null,
           'calendar_event_id': null,
+          'reminder_days_before': reminderDaysBefore,
+          'notification_id': notificationId,
         })
         .select()
         .single();
@@ -61,12 +76,16 @@ class SkillTaskRepository {
     required SkillTask task,
     required String taskTitle,
     required DateTime dueDate,
+    int? reminderDaysBefore,
+    int? notificationId,
   }) async {
     final row = await _supabase
         .from('skill_tasks')
         .update({
           'task_title': taskTitle.trim(),
           'due_date': _dateOnly(dueDate),
+          'reminder_days_before': reminderDaysBefore,
+          'notification_id': notificationId,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', task.id)
@@ -94,6 +113,24 @@ class SkillTaskRepository {
         .eq('user_id', _userId)
         .eq('goal_id', task.goalId)
         .eq('skill_id', task.skillId)
+        .select()
+        .single();
+    return SkillTask.fromJson(row);
+  }
+
+  Future<SkillTask> setCalendarEventId({
+    required SkillTask task,
+    required String calendarEventId,
+  }) async {
+    final row = await _supabase
+        .from('skill_tasks')
+        .update({
+          'calendar_event_id': calendarEventId,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', task.id)
+        .eq('user_id', _userId)
+        .eq('goal_id', task.goalId)
         .select()
         .single();
     return SkillTask.fromJson(row);

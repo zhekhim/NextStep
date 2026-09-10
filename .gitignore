@@ -34,6 +34,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Local Supabase secret configuration
+/lib/core/supabase/supabase_config.dart
+
 # Symbolication related
 app.*.symbols
 

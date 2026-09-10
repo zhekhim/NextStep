@@ -9,6 +9,8 @@ class SkillTask {
     required this.isCompleted,
     this.completedAt,
     this.calendarEventId,
+    this.reminderDaysBefore,
+    this.notificationId,
     this.createdAt,
     this.updatedAt,
   });
@@ -22,6 +24,8 @@ class SkillTask {
   final bool isCompleted;
   final DateTime? completedAt;
   final String? calendarEventId;
+  final int? reminderDaysBefore;
+  final int? notificationId;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -35,6 +39,8 @@ class SkillTask {
     isCompleted: json['is_completed'] as bool? ?? false,
     completedAt: _dateTimeOrNull(json['completed_at']),
     calendarEventId: json['calendar_event_id'] as String?,
+    reminderDaysBefore: json['reminder_days_before'] as int?,
+    notificationId: json['notification_id'] as int?,
     createdAt: _dateTimeOrNull(json['created_at']),
     updatedAt: _dateTimeOrNull(json['updated_at']),
   );
@@ -49,6 +55,8 @@ class SkillTask {
     'is_completed': isCompleted,
     'completed_at': completedAt?.toUtc().toIso8601String(),
     'calendar_event_id': calendarEventId,
+    'reminder_days_before': reminderDaysBefore,
+    'notification_id': notificationId,
     'created_at': createdAt?.toUtc().toIso8601String(),
     'updated_at': updatedAt?.toUtc().toIso8601String(),
   };

@@ -18,9 +18,23 @@ class CareerRepository {
     final rows = await _supabase
         .from('careers')
         .select(
-          'id, career_name, category, description, created_at, updated_at',
+          'id, career_name, category, description, riasec_code, created_at, updated_at',
         )
         .order('career_name');
+
+    return rows.map(Career.fromJson).toList(growable: false);
+  }
+
+  Future<List<Career>> getCareersByRiasecCode(String code) async {
+    final normalizedCode = code.trim().toUpperCase();
+    final rows = await _supabase
+        .from('careers')
+        .select(
+          'id, career_name, category, description, riasec_code, created_at, updated_at',
+        )
+        .ilike('riasec_code', normalizedCode)
+        .order('career_name')
+        .limit(5);
 
     return rows.map(Career.fromJson).toList(growable: false);
   }

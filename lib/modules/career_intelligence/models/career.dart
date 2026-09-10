@@ -4,6 +4,7 @@ class Career {
     required this.careerName,
     required this.category,
     required this.description,
+    this.riasecCode = '',
     this.createdAt,
     this.updatedAt,
   });
@@ -12,6 +13,7 @@ class Career {
   final String careerName;
   final String category;
   final String description;
+  final String riasecCode;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -21,6 +23,7 @@ class Career {
       careerName: json['career_name'].toString(),
       category: json['category'].toString(),
       description: json['description'].toString(),
+      riasecCode: (json['riasec_code'] ?? '').toString().trim().toUpperCase(),
       createdAt: _parseDate(json['created_at']),
       updatedAt: _parseDate(json['updated_at']),
     );

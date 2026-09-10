@@ -3,21 +3,13 @@ import '../models/riasec_question.dart';
 class RiasecDimensionScore {
   const RiasecDimensionScore({
     required this.dimension,
-    required this.total,
-    required this.enjoyCount,
-    required this.slightlyEnjoyCount,
+    required this.average,
+    required this.percentage,
   });
 
   final String dimension;
-  final int total;
-  final int enjoyCount;
-  final int slightlyEnjoyCount;
-
-  bool hasSameRankAs(RiasecDimensionScore other) {
-    return total == other.total &&
-        enjoyCount == other.enjoyCount &&
-        slightlyEnjoyCount == other.slightlyEnjoyCount;
-  }
+  final double average;
+  final double percentage;
 }
 
 class RiasecResult {
@@ -43,23 +35,19 @@ class RiasecScoringService {
         for (var index = 0; index < questions.length; index++)
           if (questions[index].dimension == dimension) answers[index] ?? 0,
       ];
+      final average = values.isEmpty
+          ? 0.0
+          : values.fold(0, (sum, value) => sum + value) / values.length;
       return RiasecDimensionScore(
         dimension: dimension,
-        total: values.fold(0, (sum, value) => sum + value),
-        enjoyCount: values.where((value) => value == 5).length,
-        slightlyEnjoyCount: values.where((value) => value == 4).length,
+        average: average,
+        percentage: average / 5 * 100,
       );
     }).toList();
 
     scores.sort((left, right) {
-      final totalComparison = right.total.compareTo(left.total);
-      if (totalComparison != 0) return totalComparison;
-      final enjoyComparison = right.enjoyCount.compareTo(left.enjoyCount);
-      if (enjoyComparison != 0) return enjoyComparison;
-      final slightlyEnjoyComparison = right.slightlyEnjoyCount.compareTo(
-        left.slightlyEnjoyCount,
-      );
-      if (slightlyEnjoyComparison != 0) return slightlyEnjoyComparison;
+      final scoreComparison = right.percentage.compareTo(left.percentage);
+      if (scoreComparison != 0) return scoreComparison;
       return dimensions
           .indexOf(left.dimension)
           .compareTo(dimensions.indexOf(right.dimension));

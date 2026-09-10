@@ -1,13 +1,11 @@
+import '../../career_intelligence/models/career.dart';
+
 class RiasecCareerMatch {
   const RiasecCareerMatch({
-    required this.careerName,
-    required this.riasecCode,
-    required this.description,
-    required this.matchScore,
+    required this.career,
+    required this.matchPercentage,
   });
 
-  final String careerName;
-  final String riasecCode;
-  final String description;
-  final int matchScore;
+  final Career career;
+  final double matchPercentage;
 }

@@ -30,4 +30,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Home'), findsNWidgets(2));
   });
+
+  testWidgets('navigation labels fit on a narrow phone', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const MaterialApp(home: MainNavigationScreen()));
+
+    final assessmentLabel = tester.widget<Text>(find.text('Assessment').first);
+    expect(assessmentLabel.maxLines, 1);
+    expect(tester.takeException(), isNull);
+  });
 }

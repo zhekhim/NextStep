@@ -26,53 +26,61 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final navigationLabelSize = mediaQuery.size.width < 400 ? 11.0 : 12.0;
+
     return Scaffold(
       body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        backgroundColor: const Color(0xFF000000),
-        indicatorColor: const Color(0xFF0007CD).withValues(alpha: 0.18),
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          return TextStyle(
-            color: states.contains(WidgetState.selected)
-                ? const Color(0xFF1A26FF)
-                : const Color(0xFF888888),
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-          );
-        }),
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          if (index != _selectedIndex) {
-            setState(() => _selectedIndex = index);
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.work_outline),
-            selectedIcon: Icon(Icons.work),
-            label: 'Careers',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_outlined),
-            selectedIcon: Icon(Icons.assignment),
-            label: 'Assessment',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.flag_outlined),
-            selectedIcon: Icon(Icons.flag),
-            label: 'Goals',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: MediaQuery(
+        data: mediaQuery.copyWith(
+          textScaler: mediaQuery.textScaler.clamp(maxScaleFactor: 1),
+        ),
+        child: NavigationBar(
+          backgroundColor: const Color(0xFF000000),
+          indicatorColor: const Color(0xFF0007CD).withValues(alpha: 0.18),
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            return TextStyle(
+              color: states.contains(WidgetState.selected)
+                  ? const Color(0xFF1A26FF)
+                  : const Color(0xFF888888),
+              fontSize: navigationLabelSize,
+              fontWeight: FontWeight.w500,
+            );
+          }),
+          selectedIndex: _selectedIndex,
+          onDestinationSelected: (index) {
+            if (index != _selectedIndex) {
+              setState(() => _selectedIndex = index);
+            }
+          },
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Home',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.work_outline),
+              selectedIcon: Icon(Icons.work),
+              label: 'Careers',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.assignment_outlined),
+              selectedIcon: Icon(Icons.assignment),
+              label: 'Assessment',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.flag_outlined),
+              selectedIcon: Icon(Icons.flag),
+              label: 'Goals',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Profile',
+            ),
+          ],
+        ),
       ),
     );
   }

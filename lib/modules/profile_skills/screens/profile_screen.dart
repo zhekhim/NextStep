@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../career_intelligence/repositories/career_repository.dart';
 import '../models/profile.dart';
@@ -145,6 +146,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Log out?'),
+        content: const Text('You will need to log in again to continue.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await Supabase.instance.client.auth.signOut();
+  }
+
   Future<void> _reloadSkills() async {
     setState(() {
       _skillsLoading = true;
@@ -221,6 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         onDeleteAccount: () => _showNextStep('Account deletion'),
+        onLogout: _logout,
       );
     }
 
@@ -242,6 +266,7 @@ class _ProfileContent extends StatelessWidget {
     required this.onManageSkills,
     required this.onManageCertifications,
     required this.onDeleteAccount,
+    required this.onLogout,
   });
 
   final Profile profile;
@@ -253,6 +278,7 @@ class _ProfileContent extends StatelessWidget {
   final VoidCallback onManageSkills;
   final VoidCallback onManageCertifications;
   final VoidCallback onDeleteAccount;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
@@ -321,6 +347,19 @@ class _ProfileContent extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 28),
+        SizedBox(
+          height: 48,
+          child: OutlinedButton.icon(
+            onPressed: onLogout,
+            icon: const Icon(Icons.logout),
+            label: const Text('Log out'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: const Color(0xFFFF8A8A),
+              side: const BorderSide(color: Color(0xFFFF4D4D)),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         const Divider(color: Color(0xFF222222)),
         const SizedBox(height: 12),
         TextButton.icon(

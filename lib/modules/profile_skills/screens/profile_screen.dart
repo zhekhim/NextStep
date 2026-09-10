@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/profile.dart';
 import '../models/certification.dart';
 import '../models/user_skill.dart';
 import '../repositories/certification_repository.dart';
 import '../repositories/profile_repository.dart';
+import '../repositories/profile_media_repository.dart';
 import '../repositories/skill_repository.dart';
 import '../services/profile_insights_service.dart';
 import 'certification_screen.dart';
@@ -29,6 +31,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final ProfileRepository _profileRepository;
   late final SkillRepository _skillRepository;
   late final CertificationRepository _certificationRepository;
+  late final ProfileMediaRepository _profileMediaRepository;
+  late final ImagePicker _imagePicker;
   Profile? _profile;
   bool _profileLoading = true;
   bool _profileFailed = false;
@@ -42,6 +46,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _profileRepository = widget.profileRepository ?? ProfileRepository();
     _skillRepository = widget.skillRepository ?? SkillRepository();
     _certificationRepository = CertificationRepository();
+    _profileMediaRepository = ProfileMediaRepository();
+    _imagePicker = ImagePicker();
     _loadProfile();
     _reloadSkills();
   }
@@ -78,6 +84,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (_) => EditProfileScreen(
           profile: profile,
           profileRepository: _profileRepository,
+          onChangePhoto: _changeProfilePhoto,
         ),
       ),
     );
@@ -87,6 +94,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Profile updated successfully.')),
     );
+  }
+
+  Future<void> _changeProfilePhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    try {
+      final image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+      final extension = image.name.split('.').last.toLowerCase();
+      final url = await _profileMediaRepository.uploadProfilePhoto(
+        bytes: await image.readAsBytes(),
+        fileName: image.name,
+        contentType: extension == 'png' ? 'image/png' : 'image/jpeg',
+      );
+      if (!mounted || _profile == null) return;
+      setState(() => _profile = _profile!.copyWith(avatarUrl: url));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile photo updated successfully.')),
+      );
+    } catch (error) {
+      debugPrint('Profile photo upload failed: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile photo upload failed: $error')),
+        );
+      }
+    }
   }
 
   Future<void> _reloadSkills() async {

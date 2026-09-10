@@ -53,6 +53,11 @@ class AuthRepository {
       throw const AuthException('Login was not completed.');
     }
 
+    await _supabase.auth.refreshSession();
+    if (_supabase.auth.currentSession == null) {
+      throw const AuthException('Login session could not be saved.');
+    }
+
     return LoginResult(userId: user.id);
   }
 }

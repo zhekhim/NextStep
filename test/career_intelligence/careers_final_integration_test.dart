@@ -219,6 +219,7 @@ class _ShortlistRepository implements CareerShortlistRepository {
 
   @override
   Future<CareerShortlist> addCareer({
+    String status = 'Interested',
     required String careerId,
     String? priority,
     String? notes,
@@ -238,6 +239,7 @@ class _ShortlistRepository implements CareerShortlistRepository {
 
   @override
   Future<CareerShortlist> updateCareer({
+    String? status,
     required String shortlistId,
     required String? priority,
     required String? notes,
@@ -247,6 +249,7 @@ class _ShortlistRepository implements CareerShortlistRepository {
 class _EmptyShortlistRepository implements CareerShortlistRepository {
   @override
   Future<CareerShortlist> addCareer({
+    String status = 'Interested',
     required String careerId,
     String? priority,
     String? notes,
@@ -263,6 +266,7 @@ class _EmptyShortlistRepository implements CareerShortlistRepository {
 
   @override
   Future<CareerShortlist> updateCareer({
+    String? status,
     required String shortlistId,
     required String? priority,
     required String? notes,

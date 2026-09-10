@@ -23,6 +23,7 @@ class _EditInterestedCareerScreenState
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _notesController;
   String? _priority;
+  late String _status;
   bool _isSaving = false;
   bool _isRemoving = false;
 
@@ -30,6 +31,7 @@ class _EditInterestedCareerScreenState
   void initState() {
     super.initState();
     _priority = widget.shortlist.priority;
+    _status = widget.shortlist.status;
     _notesController = TextEditingController(text: widget.shortlist.notes);
   }
 
@@ -47,6 +49,7 @@ class _EditInterestedCareerScreenState
         shortlistId: widget.shortlist.id,
         priority: _priority,
         notes: _notesController.text,
+        status: _status,
       );
       if (mounted) Navigator.pop(context, updated);
     } catch (_) {
@@ -115,6 +118,25 @@ class _EditInterestedCareerScreenState
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 20),
+              DropdownButtonFormField<String>(
+                initialValue: _status,
+                decoration: const InputDecoration(
+                  labelText: 'Interest status *',
+                  border: OutlineInputBorder(),
+                ),
+                items: CareerShortlist.statuses
+                    .map(
+                      (status) =>
+                          DropdownMenuItem(value: status, child: Text(status)),
+                    )
+                    .toList(),
+                validator: (value) =>
+                    value == null ? 'Select an interest status.' : null,
+                onChanged: _isSaving || _isRemoving
+                    ? null
+                    : (value) => setState(() => _status = value!),
+              ),
+              const SizedBox(height: 16),
               DropdownButtonFormField<String?>(
                 initialValue: _priority,
                 decoration: const InputDecoration(

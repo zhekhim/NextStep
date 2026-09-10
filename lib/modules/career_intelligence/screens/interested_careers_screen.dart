@@ -170,6 +170,7 @@ class _InterestedCareersScreenState extends State<InterestedCareersScreen> {
         itemBuilder: (context, index) {
           final item = _items[index];
           final details = <String>[
+            item.status,
             item.career.category,
             if (item.priority != null) '${item.priority} priority',
             if (item.notes != null) item.notes!,

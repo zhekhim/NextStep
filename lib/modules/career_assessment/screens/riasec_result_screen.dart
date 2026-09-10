@@ -1,13 +1,19 @@
+import 'dart:typed_data';
+import 'package:printing/printing.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
 import '../../career_intelligence/models/career.dart';
 import '../../career_intelligence/repositories/career_repository.dart';
 import '../../career_intelligence/screens/career_detail_screen.dart';
+import '../../career_intelligence/screens/interested_careers_screen.dart';
+import '../services/assessment_report_service.dart';
+import '../widgets/save_recommended_career_button.dart';
 import '../models/assessment_dimension.dart';
 import '../models/riasec_career_match.dart';
 import '../repositories/assessment_dimension_repository.dart';
 import '../services/riasec_scoring_service.dart';
+import 'assessment_history_screen.dart';
 
 class RiasecResultScreen extends StatefulWidget {
   const RiasecResultScreen({
@@ -42,6 +48,41 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
   bool _dimensionsLoading = false;
   String? _error;
   String? _dimensionsError;
+  bool _exporting = false;
+  Uint8List? _reportBytes;
+
+  Future<void> _exportReport() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final service = AssessmentReportService();
+      _reportBytes ??= await service.generate(
+        result: widget.result,
+        careers: _matches.map((match) => match.career).toList(),
+        dimensions: _dimensions,
+        generatedAt: DateTime.now(),
+      );
+      await Printing.sharePdf(
+        bytes: _reportBytes!,
+        filename: 'NextStep-${widget.result.code}.pdf',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choose Save or an app to share your PDF.')),
+      );
+    } catch (error) {
+      debugPrint('Assessment PDF export failed: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Unable to prepare the PDF. Please try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
 
   @override
   void initState() {
@@ -188,6 +229,31 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
             ),
             const SizedBox(height: 12),
             _matchesState(),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => const InterestedCareersScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.bookmarks_outlined),
+              label: const Text('Manage Saved Careers'),
+            ),
+            const SizedBox(height: 10),
+            FilledButton.icon(
+              onPressed:
+                  _exporting ||
+                      _loading ||
+                      _dimensionsLoading ||
+                      _error != null ||
+                      _dimensionsError != null
+                  ? null
+                  : _exportReport,
+              icon: const Icon(Icons.picture_as_pdf_outlined),
+              label: Text(
+                _exporting ? 'Preparing PDF...' : 'Save or Share PDF',
+              ),
+            ),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
@@ -198,6 +264,19 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
                   foregroundColor: Colors.white,
                 ),
                 child: const Text('Retake Assessment'),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const AssessmentHistoryScreen(),
+                  ),
+                ),
+                icon: const Icon(Icons.history),
+                label: const Text('View History'),
               ),
             ),
           ],
@@ -478,13 +557,6 @@ class _MatchCard extends StatelessWidget {
                 ),
               ),
             ),
-            Text(
-              '${match.matchPercentage.toStringAsFixed(0)}%',
-              style: const TextStyle(
-                color: Color(0xFF1A26FF),
-                fontWeight: FontWeight.w700,
-              ),
-            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -501,6 +573,7 @@ class _MatchCard extends StatelessWidget {
           ),
           child: const Text('Explore Career'),
         ),
+        SaveRecommendedCareerButton(career: match.career),
       ],
     ),
   );

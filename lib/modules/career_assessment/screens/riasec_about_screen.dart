@@ -248,16 +248,6 @@ class _DimensionCardState extends State<_DimensionCard> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _isExpanded
-                              ? 'Tap to collapse'
-                              : 'Tap to view details',
-                          style: const TextStyle(
-                            color: Color(0xFFA8A8A8),
-                            fontSize: 12,
-                          ),
-                        ),
                         if (_isExpanded) ...[
                           const SizedBox(height: 16),
                           const Text(

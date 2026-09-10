@@ -1,9 +1,15 @@
-
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../career_intelligence/repositories/career_repository.dart';
 import '../models/profile.dart';
+import '../models/certification.dart';
 import '../models/user_skill.dart';
+import '../repositories/certification_repository.dart';
 import '../repositories/profile_repository.dart';
+import '../repositories/profile_media_repository.dart';
 import '../repositories/skill_repository.dart';
+import 'certification_screen.dart';
 import 'edit_profile_screen.dart';
 import 'skill_portfolio_screen.dart';
 
@@ -24,6 +30,9 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late final ProfileRepository _profileRepository;
   late final SkillRepository _skillRepository;
+  late final CertificationRepository _certificationRepository;
+  late final ProfileMediaRepository _profileMediaRepository;
+  late final ImagePicker _imagePicker;
   Profile? _profile;
   bool _profileLoading = true;
   bool _profileFailed = false;
@@ -36,6 +45,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _profileRepository = widget.profileRepository ?? ProfileRepository();
     _skillRepository = widget.skillRepository ?? SkillRepository();
+    _certificationRepository = CertificationRepository();
+    _profileMediaRepository = ProfileMediaRepository();
+    _imagePicker = ImagePicker();
     _loadProfile();
     _reloadSkills();
   }
@@ -72,6 +84,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         builder: (_) => EditProfileScreen(
           profile: profile,
           profileRepository: _profileRepository,
+          onChangePhoto: _changeProfilePhoto,
+          careerRepository: CareerRepository(),
         ),
       ),
     );
@@ -81,6 +95,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Profile updated successfully.')),
     );
+  }
+
+  Future<void> _changeProfilePhoto() async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('Take a photo'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Choose from gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
+    try {
+      final image = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+      final extension = image.name.split('.').last.toLowerCase();
+      final url = await _profileMediaRepository.uploadProfilePhoto(
+        bytes: await image.readAsBytes(),
+        fileName: image.name,
+        contentType: extension == 'png' ? 'image/png' : 'image/jpeg',
+      );
+      if (!mounted || _profile == null) return;
+      setState(() => _profile = _profile!.copyWith(avatarUrl: url));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile photo updated successfully.')),
+      );
+    } catch (error) {
+      debugPrint('Profile photo upload failed: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Profile photo upload failed: $error')),
+        );
+      }
+    }
   }
 
   Future<void> _reloadSkills() async {
@@ -151,6 +213,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         onRetrySkills: _reloadSkills,
         onEditProfile: () => _openEditProfile(_profile!),
         onManageSkills: _openSkills,
+        onManageCertifications: () => Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                CertificationScreen(repository: _certificationRepository),
+          ),
+        ),
         onDeleteAccount: () => _showNextStep('Account deletion'),
       );
     }
@@ -171,6 +240,7 @@ class _ProfileContent extends StatelessWidget {
     required this.onRetrySkills,
     required this.onEditProfile,
     required this.onManageSkills,
+    required this.onManageCertifications,
     required this.onDeleteAccount,
   });
 
@@ -181,6 +251,7 @@ class _ProfileContent extends StatelessWidget {
   final VoidCallback onRetrySkills;
   final VoidCallback onEditProfile;
   final VoidCallback onManageSkills;
+  final VoidCallback onManageCertifications;
   final VoidCallback onDeleteAccount;
 
   @override
@@ -205,6 +276,10 @@ class _ProfileContent extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         _IdentityCard(profile: profile),
+        if (profile.bio != null && profile.bio!.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _BioCard(bio: profile.bio!),
+        ],
         const SizedBox(height: 20),
         const Text(
           'Academic details',
@@ -223,6 +298,11 @@ class _ProfileContent extends StatelessWidget {
           hasError: skillsFailed,
           onManageSkills: onManageSkills,
           onRetry: onRetrySkills,
+        ),
+        const SizedBox(height: 20),
+        _CertificationsCard(
+          repository: CertificationRepository(),
+          onManage: onManageCertifications,
         ),
         const SizedBox(height: 20),
         SizedBox(
@@ -347,100 +427,100 @@ class _SkillsPortfolioCard extends StatelessWidget {
         border: Border.all(color: const Color(0xFF222222)),
       ),
       child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
             children: [
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text(
-                      'SKILLS PORTFOLIO',
-                      style: TextStyle(
-                        color: Color(0xFFA8A8A8),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
+              const Expanded(
+                child: Text(
+                  'SKILLS PORTFOLIO',
+                  style: TextStyle(
+                    color: Color(0xFFA8A8A8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.8,
                   ),
-                  if (!isLoading && !hasError)
-                    Text(
-                      '${skills.length} ${skills.length == 1 ? 'skill' : 'skills'}',
-                      style: const TextStyle(
-                        color: Color(0xFF1A26FF),
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (isLoading)
-                const Align(
-                  alignment: Alignment.centerLeft,
-                  child: SizedBox.square(
-                    dimension: 22,
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF1A26FF),
-                      strokeWidth: 2,
-                    ),
-                  ),
-                )
-              else if (hasError)
-                Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Unable to load your skills.',
-                        style: TextStyle(color: Color(0xFFA8A8A8)),
-                      ),
-                    ),
-                    TextButton(onPressed: onRetry, child: const Text('Retry')),
-                  ],
-                )
-              else if (skills.isEmpty)
-                const Text(
-                  'No skills added yet.',
-                  style: TextStyle(color: Color(0xFFA8A8A8), fontSize: 14),
-                )
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: skills
-                      .map(
-                        (userSkill) => Chip(
-                          label: Text(userSkill.skill.name),
-                          backgroundColor: const Color(0xFF222222),
-                          side: const BorderSide(color: Color(0xFF333333)),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          labelStyle: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                          ),
-                          visualDensity: VisualDensity.compact,
-                        ),
-                      )
-                      .toList(),
-                ),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 44,
-                child: FilledButton(
-                  onPressed: onManageSkills,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFF222222),
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text('Manage Skills'),
                 ),
               ),
+              if (!isLoading && !hasError)
+                Text(
+                  '${skills.length} ${skills.length == 1 ? 'skill' : 'skills'}',
+                  style: const TextStyle(
+                    color: Color(0xFF1A26FF),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
             ],
           ),
+          const SizedBox(height: 12),
+          if (isLoading)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox.square(
+                dimension: 22,
+                child: CircularProgressIndicator(
+                  color: Color(0xFF1A26FF),
+                  strokeWidth: 2,
+                ),
+              ),
+            )
+          else if (hasError)
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Unable to load your skills.',
+                    style: TextStyle(color: Color(0xFFA8A8A8)),
+                  ),
+                ),
+                TextButton(onPressed: onRetry, child: const Text('Retry')),
+              ],
+            )
+          else if (skills.isEmpty)
+            const Text(
+              'No skills added yet.',
+              style: TextStyle(color: Color(0xFFA8A8A8), fontSize: 14),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: skills
+                  .map(
+                    (userSkill) => Chip(
+                      label: Text(userSkill.skill.name),
+                      backgroundColor: const Color(0xFF222222),
+                      side: const BorderSide(color: Color(0xFF333333)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      labelStyle: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                      ),
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  )
+                  .toList(),
+            ),
+          const SizedBox(height: 14),
+          SizedBox(
+            height: 44,
+            child: FilledButton(
+              onPressed: onManageSkills,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF222222),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Manage Skills'),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -478,8 +558,122 @@ class _DetailsCard extends StatelessWidget {
                 : 'Year ${profile.yearOfStudy}',
             showDivider: false,
           ),
+          if (profile.title != null && profile.title!.isNotEmpty)
+            _DetailRow(
+              icon: Icons.badge_outlined,
+              label: 'Target Title',
+              value: profile.title,
+            ),
+          if (profile.targetedJobRoles.isNotEmpty)
+            _DetailRow(
+              icon: Icons.work_outline,
+              label: 'Targeted Roles',
+              value: profile.targetedJobRoles.join(', '),
+              showDivider: false,
+            ),
         ],
       ),
+    );
+  }
+}
+
+class _CertificationsCard extends StatelessWidget {
+  const _CertificationsCard({required this.repository, required this.onManage});
+
+  final CertificationRepository repository;
+  final VoidCallback onManage;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF181818),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF222222)),
+      ),
+      child: FutureBuilder<List<Certification>>(
+        future: repository.getCertifications(),
+        builder: (context, snapshot) {
+          final items = snapshot.data ?? const <Certification>[];
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'CERTIFICATIONS',
+                      style: TextStyle(
+                        color: Color(0xFFA8A8A8),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: onManage,
+                    icon: const Icon(Icons.arrow_forward_ios, size: 18),
+                  ),
+                ],
+              ),
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const LinearProgressIndicator(minHeight: 2)
+              else if (snapshot.hasError)
+                const Text(
+                  'Unable to load certifications.',
+                  style: TextStyle(color: Color(0xFFA8A8A8)),
+                )
+              else if (items.isEmpty)
+                const Text(
+                  'No certifications added yet.',
+                  style: TextStyle(color: Colors.white),
+                )
+              else
+                ...items
+                    .take(3)
+                    .map(
+                      (item) => ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        dense: true,
+                        leading: const Icon(Icons.verified_outlined),
+                        title: Text(item.title),
+                        subtitle: Text(item.issuer),
+                      ),
+                    ),
+              TextButton(
+                onPressed: onManage,
+                child: Text(
+                  items.isEmpty
+                      ? 'Upload certificate'
+                      : 'Manage ${items.length} certificate(s)',
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _BioCard extends StatelessWidget {
+  const _BioCard({required this.bio});
+
+  final String bio;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF181818),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF222222)),
+      ),
+      child: Text(bio, style: const TextStyle(color: Color(0xFFD6D6D6))),
     );
   }
 }

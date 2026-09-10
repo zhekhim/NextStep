@@ -40,14 +40,15 @@ class ProfileRepository {
       userId: user.id,
       fullName: fullName,
       email: user.email ?? 'Email unavailable',
-      university:
-          _text(row?['university']) ?? _text(metadata['university']),
+      university: _text(row?['university']) ?? _text(metadata['university']),
       major: _text(row?['major']) ?? _text(metadata['major']),
       yearOfStudy:
-          row?['study_year']?.toString() ??
-          metadata['study_year']?.toString(),
+          row?['study_year']?.toString() ?? metadata['study_year']?.toString(),
       preferredEmploymentState: _text(metadata['preferred_employment_state']),
       avatarUrl: _text(metadata['avatar_url']),
+      title: _text(metadata['title']),
+      bio: _text(metadata['bio']),
+      targetedJobRoles: _roles(metadata['targeted_job_roles']),
     );
   }
 
@@ -56,6 +57,9 @@ class ProfileRepository {
     required String university,
     required String major,
     required int studyYear,
+    String title = '',
+    String bio = '',
+    List<String> targetedJobRoles = const [],
   }) async {
     final user = _supabase.auth.currentUser;
     if (user == null) {
@@ -74,6 +78,16 @@ class ProfileRepository {
       ...profileData,
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     }, onConflict: 'id');
+
+    await _supabase.auth.updateUser(
+      UserAttributes(
+        data: {
+          'title': title.trim(),
+          'bio': bio.trim(),
+          'targeted_job_roles': targetedJobRoles,
+        },
+      ),
+    );
   }
 
   String? _text(dynamic value) {
@@ -89,5 +103,14 @@ class ProfileRepository {
         .where((part) => part.isNotEmpty)
         .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
         .join(' ');
+  }
+
+  List<String> _roles(Object? value) {
+    if (value is! List) return const [];
+    return value
+        .whereType<String>()
+        .map((role) => role.trim())
+        .where((role) => role.isNotEmpty)
+        .toList(growable: false);
   }
 }

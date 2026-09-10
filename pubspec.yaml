@@ -46,6 +46,8 @@ dependencies:
   url_launcher: ^6.3.2
   device_calendar_plus: ^0.8.0
   timezone: ^0.11.1
+  image_picker: ^1.1.2
+  file_picker: ^12.2.0
 
 dev_dependencies:
   flutter_test:
@@ -68,6 +70,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/data/employment_stats.json
+    - lib/image/riasec.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

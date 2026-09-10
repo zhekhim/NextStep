@@ -8,6 +8,9 @@ class Profile {
     this.yearOfStudy,
     this.preferredEmploymentState,
     this.avatarUrl,
+    this.title,
+    this.bio,
+    this.targetedJobRoles = const [],
   });
 
   final String userId;
@@ -18,12 +21,19 @@ class Profile {
   final String? yearOfStudy;
   final String? preferredEmploymentState;
   final String? avatarUrl;
+  final String? title;
+  final String? bio;
+  final List<String> targetedJobRoles;
 
   Profile copyWith({
     String? fullName,
     String? university,
     String? major,
     String? yearOfStudy,
+    String? title,
+    String? bio,
+    List<String>? targetedJobRoles,
+    String? avatarUrl,
   }) {
     return Profile(
       userId: userId,
@@ -33,7 +43,10 @@ class Profile {
       major: major ?? this.major,
       yearOfStudy: yearOfStudy ?? this.yearOfStudy,
       preferredEmploymentState: preferredEmploymentState,
-      avatarUrl: avatarUrl,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+      title: title ?? this.title,
+      bio: bio ?? this.bio,
+      targetedJobRoles: targetedJobRoles ?? this.targetedJobRoles,
     );
   }
 

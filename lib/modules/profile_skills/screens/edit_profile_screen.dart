@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/utils/validators.dart';
+import '../../career_intelligence/models/career.dart';
+import '../../career_intelligence/repositories/career_repository.dart';
 import '../models/profile.dart';
 import '../repositories/profile_repository.dart';
 
@@ -9,10 +11,14 @@ class EditProfileScreen extends StatefulWidget {
     super.key,
     required this.profile,
     this.profileRepository,
+    this.onChangePhoto,
+    this.careerRepository,
   });
 
   final Profile profile;
   final ProfileRepository? profileRepository;
+  final VoidCallback? onChangePhoto;
+  final CareerRepository? careerRepository;
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
@@ -21,9 +27,14 @@ class EditProfileScreen extends StatefulWidget {
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   late final ProfileRepository _repository;
+  late final CareerRepository _careerRepository;
+  late final Future<List<Career>> _careers;
   late final TextEditingController _fullNameController;
   late final TextEditingController _universityController;
   late final TextEditingController _majorController;
+  late final TextEditingController _titleController;
+  late final TextEditingController _bioController;
+  String? _selectedRole;
   int? _studyYear;
   bool _saving = false;
   String? _saveError;
@@ -32,11 +43,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   void initState() {
     super.initState();
     _repository = widget.profileRepository ?? ProfileRepository();
+    _careerRepository = widget.careerRepository ?? CareerRepository();
+    _careers = _careerRepository.getCareers();
     _fullNameController = TextEditingController(text: widget.profile.fullName);
     _universityController = TextEditingController(
       text: widget.profile.university,
     );
     _majorController = TextEditingController(text: widget.profile.major);
+    _titleController = TextEditingController(text: widget.profile.title);
+    _bioController = TextEditingController(text: widget.profile.bio);
+    _selectedRole = widget.profile.targetedJobRoles.isEmpty
+        ? null
+        : widget.profile.targetedJobRoles.first;
     _studyYear = int.tryParse(widget.profile.yearOfStudy ?? '');
   }
 
@@ -45,6 +63,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _fullNameController.dispose();
     _universityController.dispose();
     _majorController.dispose();
+    _titleController.dispose();
+    _bioController.dispose();
     super.dispose();
   }
 
@@ -61,6 +81,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         university: _universityController.text,
         major: _majorController.text,
         studyYear: _studyYear!,
+        title: _titleController.text,
+        bio: _bioController.text,
+        targetedJobRoles: _selectedRole == null ? const [] : [_selectedRole!],
       );
       if (mounted) {
         Navigator.pop(
@@ -70,6 +93,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             university: _universityController.text.trim(),
             major: _majorController.text.trim(),
             yearOfStudy: _studyYear!.toString(),
+            title: _titleController.text.trim(),
+            bio: _bioController.text.trim(),
+            targetedJobRoles: _selectedRole == null ? const [] : [_selectedRole!],
           ),
         );
       }
@@ -95,6 +121,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF181818),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 32,
+                    backgroundColor: const Color(0xFF0007CD),
+                    foregroundImage: widget.profile.avatarUrl == null
+                        ? null
+                        : NetworkImage(widget.profile.avatarUrl!),
+                    child: widget.profile.avatarUrl == null
+                        ? Text(widget.profile.initials)
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : widget.onChangePhoto,
+                      icon: const Icon(Icons.camera_alt_outlined),
+                      label: const Text('Change profile photo'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _fullNameController,
               enabled: !_saving,
@@ -129,6 +185,59 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               decoration: _decoration('Major'),
               validator: (value) =>
                   Validators.requiredField(value, fieldName: 'Major'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _titleController,
+              enabled: !_saving,
+              decoration: _decoration('Professional Title'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _bioController,
+              enabled: !_saving,
+              maxLines: 4,
+              decoration: _decoration('Bio'),
+            ),
+            const SizedBox(height: 16),
+            FutureBuilder<List<Career>>(
+              future: _careers,
+              builder: (context, snapshot) {
+                final careers = snapshot.data ?? const <Career>[];
+                final selectedValue = careers.any(
+                  (career) => career.careerName == _selectedRole,
+                )
+                    ? _selectedRole
+                    : null;
+                return DropdownButtonFormField<String>(
+                  initialValue: selectedValue,
+                  isExpanded: true,
+                  decoration: _decoration('Targeted Job Role'),
+                  dropdownColor: const Color(0xFF222222),
+                  hint: snapshot.connectionState == ConnectionState.waiting
+                      ? const Text('Loading careers...')
+                      : const Text('Select a career'),
+                  items: careers
+                      .map(
+                        (career) => DropdownMenuItem(
+                          value: career.careerName,
+                          child: Text(
+                            career.careerName,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: _saving || careers.isEmpty
+                      ? null
+                      : (value) => setState(() => _selectedRole = value),
+                  validator: (value) => value == null
+                      ? snapshot.hasError
+                          ? 'Unable to load careers.'
+                          : 'Please select a target career.'
+                      : null,
+                );
+              },
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<int>(

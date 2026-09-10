@@ -87,10 +87,11 @@ class _SkillPortfolioScreenState extends State<SkillPortfolioScreen> {
       ),
     );
     if (updatedSkill != null && mounted) {
-      final updatedSkills = _latestSkills
-          .map((item) => item.id == updatedSkill.id ? updatedSkill : item)
-          .toList()
-        ..sort((a, b) => a.skill.name.compareTo(b.skill.name));
+      final updatedSkills =
+          _latestSkills
+              .map((item) => item.id == updatedSkill.id ? updatedSkill : item)
+              .toList()
+            ..sort((a, b) => a.skill.name.compareTo(b.skill.name));
       setState(() {
         _latestSkills = updatedSkills;
         _skillsFuture = Future.value(updatedSkills);

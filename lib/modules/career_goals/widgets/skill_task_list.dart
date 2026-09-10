@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/skill_task.dart';
 import '../repositories/skill_task_repository.dart';
 import '../services/calendar_service.dart';
 import '../services/goal_progress_service.dart';
+import '../services/goal_notification_service.dart';
 
 class SkillTaskList extends StatefulWidget {
   const SkillTaskList({
@@ -26,6 +28,7 @@ class SkillTaskList extends StatefulWidget {
 class _SkillTaskListState extends State<SkillTaskList> {
   final _repository = SkillTaskRepository();
   final _calendarService = CalendarService();
+  final _notificationService = GoalNotificationService.instance;
   List<SkillTask> _tasks = const [];
   bool _loading = true;
   String? _error;
@@ -73,43 +76,161 @@ class _SkillTaskListState extends State<SkillTaskList> {
   Future<void> _addTask() async {
     final input = await _showTaskDialog();
     if (input == null) return;
+    SkillTask? createdTask;
     try {
-      await _repository.addTask(
+      var task = await _repository.addTask(
         goalId: widget.goalId,
         skillId: widget.skillId,
         taskTitle: input.title,
         dueDate: input.dueDate,
+        reminderDaysBefore: input.reminderDaysBefore,
       );
+      createdTask = task;
+      if (input.reminderDaysBefore != null) {
+        final notificationId = _notificationService.notificationIdFor(task.id);
+        await _notificationService.schedule(
+          notificationId: notificationId,
+          milestoneTitle: input.title,
+          dueDate: input.dueDate,
+          daysBefore: input.reminderDaysBefore!,
+        );
+        task = await _repository.updateTask(
+          task: task,
+          taskTitle: input.title,
+          dueDate: input.dueDate,
+          reminderDaysBefore: input.reminderDaysBefore,
+          notificationId: notificationId,
+        );
+      }
       await _load();
       widget.onTasksChanged?.call();
       _showMessage('Milestone added.');
-    } catch (_) {
-      _showMessage('Unable to add milestone. Try again.');
+    } on NotificationPermissionDeniedException {
+      await _clearStoredReminder(createdTask);
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage('Milestone added, but notification permission was denied.');
+    } on ReminderTimePassedException {
+      await _clearStoredReminder(createdTask);
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage(
+        'Milestone added, but the selected reminder time has passed.',
+      );
+    } on PlatformException catch (error) {
+      await _clearStoredReminder(createdTask);
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage(
+        'Milestone added, but reminder scheduling failed (${error.code}).',
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Milestone reminder scheduling failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (createdTask != null) {
+        await _clearStoredReminder(createdTask);
+        await _load();
+        widget.onTasksChanged?.call();
+        _showMessage(
+          'Milestone added, but reminder failed: ${_shortError(error)}',
+        );
+      } else {
+        _showMessage('Unable to add milestone. Try again.');
+      }
     }
   }
 
   Future<void> _editTask(SkillTask task) async {
     final input = await _showTaskDialog(task: task);
     if (input == null) return;
+    var milestoneUpdated = false;
     try {
+      final notificationId = input.reminderDaysBefore == null
+          ? null
+          : task.notificationId ??
+                _notificationService.notificationIdFor(task.id);
       await _repository.updateTask(
         task: task,
         taskTitle: input.title,
         dueDate: input.dueDate,
+        reminderDaysBefore: input.reminderDaysBefore,
+        notificationId: notificationId,
       );
+      milestoneUpdated = true;
       if (task.calendarEventId != null) {
-        await _calendarService.updateMilestone(
-          eventId: task.calendarEventId!,
+        try {
+          await _calendarService.updateMilestone(
+            eventId: task.calendarEventId!,
+            milestoneTitle: input.title,
+            dueDate: input.dueDate,
+            careerGoalTitle: widget.careerGoalTitle,
+          );
+        } catch (_) {}
+      }
+      if (task.notificationId != null) {
+        await _notificationService.cancel(task.notificationId!);
+      }
+      if (input.reminderDaysBefore != null) {
+        await _notificationService.schedule(
+          notificationId: notificationId!,
           milestoneTitle: input.title,
           dueDate: input.dueDate,
-          careerGoalTitle: widget.careerGoalTitle,
+          daysBefore: input.reminderDaysBefore!,
         );
       }
       await _load();
       widget.onTasksChanged?.call();
       _showMessage('Milestone updated.');
-    } catch (_) {
-      _showMessage('Unable to update milestone. Try again.');
+    } on NotificationPermissionDeniedException {
+      await _clearStoredReminder(
+        task,
+        title: input.title,
+        dueDate: input.dueDate,
+      );
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage(
+        'Milestone updated, but notification permission was denied.',
+      );
+    } on ReminderTimePassedException {
+      await _clearStoredReminder(
+        task,
+        title: input.title,
+        dueDate: input.dueDate,
+      );
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage(
+        'Milestone updated, but the selected reminder time has passed.',
+      );
+    } on PlatformException catch (error) {
+      await _clearStoredReminder(
+        task,
+        title: input.title,
+        dueDate: input.dueDate,
+      );
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage(
+        'Milestone updated, but reminder scheduling failed (${error.code}).',
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Milestone update failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (milestoneUpdated) {
+        await _clearStoredReminder(
+          task,
+          title: input.title,
+          dueDate: input.dueDate,
+        );
+        await _load();
+        widget.onTasksChanged?.call();
+        _showMessage(
+          'Milestone updated, but reminder failed: ${_shortError(error)}',
+        );
+      } else {
+        _showMessage('Unable to update milestone. Try again.');
+      }
     }
   }
 
@@ -117,8 +238,34 @@ class _SkillTaskListState extends State<SkillTaskList> {
     setState(() => _busyTaskId = task.id);
     try {
       await _repository.setTaskCompleted(task: task, isCompleted: completed);
+      if (task.notificationId != null) {
+        if (completed) {
+          await _notificationService.cancel(task.notificationId!);
+        } else if (task.reminderDaysBefore != null) {
+          await _notificationService.schedule(
+            notificationId: task.notificationId!,
+            milestoneTitle: task.taskTitle,
+            dueDate: task.dueDate,
+            daysBefore: task.reminderDaysBefore!,
+          );
+        }
+      }
       await _load();
       widget.onTasksChanged?.call();
+    } on NotificationPermissionDeniedException {
+      await _clearStoredReminder(task);
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage(
+        'Milestone reopened, but notification permission was denied.',
+      );
+    } on ReminderTimePassedException {
+      await _clearStoredReminder(task);
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage(
+        'Milestone reopened without a reminder because its time has passed.',
+      );
     } catch (_) {
       _showMessage('Unable to update milestone. Try again.');
     } finally {
@@ -155,10 +302,17 @@ class _SkillTaskListState extends State<SkillTaskList> {
     if (!confirmed) return;
     setState(() => _busyTaskId = task.id);
     try {
-      if (task.calendarEventId != null) {
-        await _calendarService.removeEvent(task.calendarEventId!);
-      }
       await _repository.deleteTask(task);
+      if (task.calendarEventId != null) {
+        try {
+          await _calendarService.removeEvent(task.calendarEventId!);
+        } catch (_) {}
+      }
+      if (task.notificationId != null) {
+        try {
+          await _notificationService.cancel(task.notificationId!);
+        } catch (_) {}
+      }
       await _load();
       widget.onTasksChanged?.call();
       _showMessage('Milestone deleted.');
@@ -171,28 +325,14 @@ class _SkillTaskListState extends State<SkillTaskList> {
 
   Future<void> _addToCalendar(SkillTask task) async {
     setState(() => _busyTaskId = task.id);
-    String? eventId;
     try {
-      eventId = await _calendarService.addMilestone(
+      _showMessage('Review the event in Calendar and tap Save.');
+      await _calendarService.openMilestoneEditor(
         milestone: task,
         careerGoalTitle: widget.careerGoalTitle,
       );
-      await _repository.setCalendarEventId(
-        task: task,
-        calendarEventId: eventId,
-      );
-      await _load();
-      widget.onTasksChanged?.call();
-      _showMessage('Milestone added to your calendar.');
-    } on CalendarPermissionDeniedException {
-      _showMessage('Calendar permission is required to add this milestone.');
     } catch (_) {
-      if (eventId != null) {
-        try {
-          await _calendarService.removeEvent(eventId);
-        } catch (_) {}
-      }
-      _showMessage('Unable to add milestone to calendar. Try again.');
+      _showMessage('Unable to open the calendar event editor. Try again.');
     } finally {
       if (mounted) setState(() => _busyTaskId = null);
     }
@@ -203,6 +343,21 @@ class _SkillTaskListState extends State<SkillTaskList> {
       context: context,
       builder: (context) => _MilestoneDialog(task: task),
     );
+  }
+
+  Future<void> _clearStoredReminder(
+    SkillTask? task, {
+    String? title,
+    DateTime? dueDate,
+  }) async {
+    if (task == null) return;
+    try {
+      await _repository.updateTask(
+        task: task,
+        taskTitle: title ?? task.taskTitle,
+        dueDate: dueDate ?? task.dueDate,
+      );
+    } catch (_) {}
   }
 
   void _showMessage(String message) {
@@ -369,36 +524,34 @@ class _TaskRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   _DeadlineBadge(label: deadlineLabel, color: deadlineColor),
-                  const SizedBox(height: 8),
-                  if (task.calendarEventId == null)
-                    OutlinedButton.icon(
-                      onPressed: busy ? null : onAddToCalendar,
-                      icon: const Icon(Icons.event_outlined, size: 17),
-                      label: const Text('Add to Calendar'),
-                      style: OutlinedButton.styleFrom(
-                        visualDensity: VisualDensity.compact,
+                  if (task.reminderDaysBefore != null) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      'Reminder: ${_reminderLabel(task.reminderDaysBefore)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFA8A8A8),
                       ),
-                    )
-                  else
-                    const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.event_available_outlined,
-                          size: 17,
-                          color: Color(0xFF33D17A),
-                        ),
-                        SizedBox(width: 6),
-                        Text(
-                          'Added to Calendar',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF33D17A),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
                     ),
+                  ],
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: busy ? null : onAddToCalendar,
+                    icon: Icon(
+                      task.calendarEventId == null
+                          ? Icons.event_outlined
+                          : Icons.sync_outlined,
+                      size: 17,
+                    ),
+                    label: Text(
+                      task.calendarEventId == null
+                          ? 'Add to Calendar'
+                          : 'Re-add to Calendar',
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -435,6 +588,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
   DateTime? _dueDate;
+  int? _reminderDaysBefore;
 
   @override
   void initState() {
@@ -443,6 +597,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
       text: widget.task?.taskTitle ?? '',
     );
     _dueDate = widget.task?.dueDate;
+    _reminderDaysBefore = widget.task?.reminderDaysBefore;
   }
 
   @override
@@ -477,7 +632,22 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
       _showMessage('Due date cannot be earlier than today.');
       return;
     }
-    Navigator.pop(context, _TaskInput(_titleController.text.trim(), _dueDate!));
+    if (_reminderDaysBefore != null) {
+      final reminderTime = DateTime(
+        _dueDate!.year,
+        _dueDate!.month,
+        _dueDate!.day,
+        9,
+      ).subtract(Duration(days: _reminderDaysBefore!));
+      if (!reminderTime.isAfter(DateTime.now())) {
+        _showMessage('The selected reminder time must be in the future.');
+        return;
+      }
+    }
+    Navigator.pop(
+      context,
+      _TaskInput(_titleController.text.trim(), _dueDate!, _reminderDaysBefore),
+    );
   }
 
   void _showMessage(String message) {
@@ -515,6 +685,22 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
                   ? 'Select Due Date'
                   : 'Due: ${_formatDate(_dueDate!)}',
             ),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int?>(
+            initialValue: _reminderDaysBefore,
+            decoration: const InputDecoration(
+              labelText: 'Deadline Reminder',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem<int?>(value: null, child: Text('None')),
+              DropdownMenuItem<int?>(value: 0, child: Text('On due date')),
+              DropdownMenuItem<int?>(value: 1, child: Text('1 day before')),
+              DropdownMenuItem<int?>(value: 3, child: Text('3 days before')),
+              DropdownMenuItem<int?>(value: 7, child: Text('1 week before')),
+            ],
+            onChanged: (value) => setState(() => _reminderDaysBefore = value),
           ),
           if (_dueDate == null)
             const Padding(
@@ -559,9 +745,23 @@ class _DeadlineBadge extends StatelessWidget {
 }
 
 class _TaskInput {
-  const _TaskInput(this.title, this.dueDate);
+  const _TaskInput(this.title, this.dueDate, this.reminderDaysBefore);
   final String title;
   final DateTime dueDate;
+  final int? reminderDaysBefore;
+}
+
+String _reminderLabel(int? daysBefore) => switch (daysBefore) {
+  0 => 'On due date',
+  1 => '1 day before',
+  3 => '3 days before',
+  7 => '1 week before',
+  _ => 'None',
+};
+
+String _shortError(Object error) {
+  final message = error.toString().replaceAll(RegExp(r'\s+'), ' ');
+  return message.length <= 100 ? message : '${message.substring(0, 97)}...';
 }
 
 DateTime _today() {

@@ -50,6 +50,8 @@ class SkillTaskRepository {
     required String skillId,
     required String taskTitle,
     required DateTime dueDate,
+    int? reminderDaysBefore,
+    int? notificationId,
   }) async {
     final row = await _supabase
         .from('skill_tasks')
@@ -62,6 +64,8 @@ class SkillTaskRepository {
           'is_completed': false,
           'completed_at': null,
           'calendar_event_id': null,
+          'reminder_days_before': reminderDaysBefore,
+          'notification_id': notificationId,
         })
         .select()
         .single();
@@ -72,12 +76,16 @@ class SkillTaskRepository {
     required SkillTask task,
     required String taskTitle,
     required DateTime dueDate,
+    int? reminderDaysBefore,
+    int? notificationId,
   }) async {
     final row = await _supabase
         .from('skill_tasks')
         .update({
           'task_title': taskTitle.trim(),
           'due_date': _dateOnly(dueDate),
+          'reminder_days_before': reminderDaysBefore,
+          'notification_id': notificationId,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         })
         .eq('id', task.id)

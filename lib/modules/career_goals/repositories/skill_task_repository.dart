@@ -29,8 +29,9 @@ class SkillTaskRepository {
         .eq('user_id', _userId)
         .eq('goal_id', goalId)
         .eq('skill_id', skillId)
-        .order('is_completed')
-        .order('due_date');
+        .order('is_completed', ascending: true)
+        .order('due_date', ascending: true)
+        .order('created_at', ascending: true);
     return rows.map(SkillTask.fromJson).toList();
   }
 
@@ -40,8 +41,9 @@ class SkillTaskRepository {
         .select()
         .eq('user_id', _userId)
         .eq('goal_id', goalId)
-        .order('is_completed')
-        .order('due_date');
+        .order('is_completed', ascending: true)
+        .order('due_date', ascending: true)
+        .order('created_at', ascending: true);
     return rows.map(SkillTask.fromJson).toList();
   }
 
@@ -50,6 +52,7 @@ class SkillTaskRepository {
     required String skillId,
     required String taskTitle,
     required DateTime dueDate,
+    String? description,
     int? reminderDaysBefore,
     int? notificationId,
   }) async {
@@ -60,6 +63,7 @@ class SkillTaskRepository {
           'goal_id': goalId,
           'skill_id': skillId,
           'task_title': taskTitle.trim(),
+          'description': _optionalText(description),
           'due_date': _dateOnly(dueDate),
           'is_completed': false,
           'completed_at': null,
@@ -76,6 +80,7 @@ class SkillTaskRepository {
     required SkillTask task,
     required String taskTitle,
     required DateTime dueDate,
+    String? description,
     int? reminderDaysBefore,
     int? notificationId,
   }) async {
@@ -83,6 +88,7 @@ class SkillTaskRepository {
         .from('skill_tasks')
         .update({
           'task_title': taskTitle.trim(),
+          'description': _optionalText(description),
           'due_date': _dateOnly(dueDate),
           'reminder_days_before': reminderDaysBefore,
           'notification_id': notificationId,
@@ -150,4 +156,9 @@ class SkillTaskRepository {
       '${date.year.toString().padLeft(4, '0')}-'
       '${date.month.toString().padLeft(2, '0')}-'
       '${date.day.toString().padLeft(2, '0')}';
+
+  String? _optionalText(String? value) {
+    final trimmed = value?.trim();
+    return trimmed == null || trimmed.isEmpty ? null : trimmed;
+  }
 }

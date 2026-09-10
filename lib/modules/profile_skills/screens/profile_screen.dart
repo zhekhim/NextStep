@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -33,6 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final CertificationRepository _certificationRepository;
   late final ProfileMediaRepository _profileMediaRepository;
   late final ImagePicker _imagePicker;
+  late final StreamSubscription<void> _skillChangesSubscription;
   Profile? _profile;
   bool _profileLoading = true;
   bool _profileFailed = false;
@@ -48,8 +51,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _certificationRepository = CertificationRepository();
     _profileMediaRepository = ProfileMediaRepository();
     _imagePicker = ImagePicker();
+    _skillChangesSubscription = SkillRepository.skillChanges.listen((_) {
+      if (mounted) _reloadSkills();
+    });
     _loadProfile();
     _reloadSkills();
+  }
+
+  @override
+  void dispose() {
+    _skillChangesSubscription.cancel();
+    super.dispose();
   }
 
   Future<void> _loadProfile({bool showLoading = false}) async {

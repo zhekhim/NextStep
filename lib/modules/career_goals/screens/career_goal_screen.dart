@@ -220,10 +220,12 @@ class _GoalDetailsState extends State<_GoalDetails> {
   final _skillGapService = SkillGapService();
   final _goalProgressService = GoalProgressService();
   final _skillTaskRepository = SkillTaskRepository();
+  late final StreamSubscription<void> _skillChangesSubscription;
   bool _loadingSkillGap = true;
   bool _loadingProgress = true;
   String? _skillGapError;
   String? _progressError;
+  String? _selectedSkillId;
   List<SkillGapResult> _skillGaps = const [];
   List<SkillTask> _upcomingMilestones = const [];
   GoalProgress _progress = const GoalProgress(completedCount: 0, totalCount: 0);
@@ -233,8 +235,17 @@ class _GoalDetailsState extends State<_GoalDetails> {
   @override
   void initState() {
     super.initState();
+    _skillChangesSubscription = SkillRepository.skillChanges.listen((_) {
+      if (mounted) _loadSkillGap();
+    });
     _loadSkillGap();
     _loadProgress();
+  }
+
+  @override
+  void dispose() {
+    _skillChangesSubscription.cancel();
+    super.dispose();
   }
 
   @override
@@ -283,11 +294,19 @@ class _GoalDetailsState extends State<_GoalDetails> {
         SkillRepository().getUserSkills(),
       ]);
       if (!mounted) return;
+      final skillGaps = _skillGapService.compare(
+        values[0] as List<CareerRequirement>,
+        values[1] as List<UserSkill>,
+      );
       setState(() {
-        _skillGaps = _skillGapService.compare(
-          values[0] as List<CareerRequirement>,
-          values[1] as List<UserSkill>,
-        );
+        _skillGaps = skillGaps;
+        if (!skillGaps.any(
+          (gap) => gap.requirement.skillId == _selectedSkillId,
+        )) {
+          _selectedSkillId = skillGaps.isEmpty
+              ? null
+              : skillGaps.first.requirement.skillId;
+        }
         _loadingSkillGap = false;
       });
     } catch (_) {
@@ -436,6 +455,10 @@ class _GoalDetailsState extends State<_GoalDetails> {
         .where((result) => result.status == SkillGapStatus.satisfied)
         .length;
     final percentage = _skillGapService.matchPercentage(_skillGaps);
+    final selectedSkill = _skillGaps.firstWhere(
+      (gap) => gap.requirement.skillId == _selectedSkillId,
+      orElse: () => _skillGaps.first,
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -492,13 +515,34 @@ class _GoalDetailsState extends State<_GoalDetails> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 12),
-        ..._skillGaps.map(
-          (result) => _SkillGapRow(
-            goalId: goal.id,
-            careerGoalTitle: goal.career.name,
-            result: result,
-            onTasksChanged: _loadProgress,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _skillGaps
+                .map(
+                  (result) => Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(result.requirement.skillName),
+                      selected:
+                          result.requirement.skillId ==
+                          selectedSkill.requirement.skillId,
+                      onSelected: (_) => setState(
+                        () => _selectedSkillId = result.requirement.skillId,
+                      ),
+                    ),
+                  ),
+                )
+                .toList(),
           ),
+        ),
+        const SizedBox(height: 12),
+        _SkillGapRow(
+          key: ValueKey(selectedSkill.requirement.skillId),
+          goalId: goal.id,
+          careerGoalTitle: goal.career.name,
+          result: selectedSkill,
+          onTasksChanged: _loadProgress,
         ),
       ],
     );
@@ -526,15 +570,16 @@ class _SkillRadarChart extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final yourColor = colors.primary;
     final requiredColor = colors.secondary;
+    final labels = visibleGaps
+        .map((gap) => _wrapLabel(gap.requirement.skillName))
+        .toList();
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final chartSize = (constraints.maxWidth * 0.78)
-            .clamp(210.0, 270.0)
-            .toDouble();
         return Center(
-          child: SizedBox.square(
-            dimension: chartSize,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            height: 320,
             child: RadarChart(
               RadarChartData(
                 dataSets: [
@@ -575,7 +620,7 @@ class _SkillRadarChart extends StatelessWidget {
                     return const RadarChartTitle(text: '');
                   }
                   return RadarChartTitle(
-                    text: _shortLabel(visibleGaps[index].requirement.skillName),
+                    text: labels[index],
                     angle: 0,
                   );
                 },
@@ -596,11 +641,23 @@ class _SkillRadarChart extends StatelessWidget {
     _ => 0,
   };
 
-  static String _shortLabel(String label) {
-    const maximumLength = 14;
-    return label.length <= maximumLength
-        ? label
-        : '${label.substring(0, maximumLength - 1)}…';
+  static String _wrapLabel(String label) {
+    const maximumLineLength = 16;
+    final lines = <String>[];
+    var currentLine = '';
+
+    for (final word in label.trim().split(RegExp(r'\s+'))) {
+      if (currentLine.isEmpty) {
+        currentLine = word;
+      } else if ('$currentLine $word'.length <= maximumLineLength) {
+        currentLine = '$currentLine $word';
+      } else {
+        lines.add(currentLine);
+        currentLine = word;
+      }
+    }
+    if (currentLine.isNotEmpty) lines.add(currentLine);
+    return lines.join('\n');
   }
 }
 
@@ -658,6 +715,7 @@ class _StatusBadge extends StatelessWidget {
 
 class _SkillGapRow extends StatelessWidget {
   const _SkillGapRow({
+    super.key,
     required this.goalId,
     required this.careerGoalTitle,
     required this.result,

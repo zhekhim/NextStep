@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../profile_skills/repositories/skill_repository.dart';
 import '../models/skill_task.dart';
 import '../repositories/skill_task_repository.dart';
 import '../services/calendar_service.dart';
@@ -82,6 +83,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
         goalId: widget.goalId,
         skillId: widget.skillId,
         taskTitle: input.title,
+        description: input.description,
         dueDate: input.dueDate,
         reminderDaysBefore: input.reminderDaysBefore,
       );
@@ -97,6 +99,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
         task = await _repository.updateTask(
           task: task,
           taskTitle: input.title,
+          description: input.description,
           dueDate: input.dueDate,
           reminderDaysBefore: input.reminderDaysBefore,
           notificationId: notificationId,
@@ -152,6 +155,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
       await _repository.updateTask(
         task: task,
         taskTitle: input.title,
+        description: input.description,
         dueDate: input.dueDate,
         reminderDaysBefore: input.reminderDaysBefore,
         notificationId: notificationId,
@@ -238,6 +242,9 @@ class _SkillTaskListState extends State<SkillTaskList> {
     setState(() => _busyTaskId = task.id);
     try {
       await _repository.setTaskCompleted(task: task, isCompleted: completed);
+      if (completed && task.templateId != null) {
+        SkillRepository.notifySkillsChanged();
+      }
       if (task.notificationId != null) {
         if (completed) {
           await _notificationService.cancel(task.notificationId!);
@@ -355,6 +362,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
       await _repository.updateTask(
         task: task,
         taskTitle: title ?? task.taskTitle,
+        description: task.description,
         dueDate: dueDate ?? task.dueDate,
       );
     } catch (_) {}
@@ -510,6 +518,27 @@ class _TaskRow extends StatelessWidget {
                           : Colors.white,
                     ),
                   ),
+                  if (task.description != null) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      task.description!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFC8C8C8),
+                      ),
+                    ),
+                  ],
+                  if (task.completionEvidence != null) ...[
+                    const SizedBox(height: 5),
+                    Text(
+                      'Suggested evidence: ${task.completionEvidence}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFA8A8A8),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 3),
                   Text(
                     task.isCompleted
@@ -587,6 +616,7 @@ class _MilestoneDialog extends StatefulWidget {
 class _MilestoneDialogState extends State<_MilestoneDialog> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
   DateTime? _dueDate;
   int? _reminderDaysBefore;
 
@@ -596,6 +626,9 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
     _titleController = TextEditingController(
       text: widget.task?.taskTitle ?? '',
     );
+    _descriptionController = TextEditingController(
+      text: widget.task?.description ?? '',
+    );
     _dueDate = widget.task?.dueDate;
     _reminderDaysBefore = widget.task?.reminderDaysBefore;
   }
@@ -603,6 +636,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
   @override
   void dispose() {
     _titleController.dispose();
+    _descriptionController.dispose();
     super.dispose();
   }
 
@@ -646,7 +680,12 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
     }
     Navigator.pop(
       context,
-      _TaskInput(_titleController.text.trim(), _dueDate!, _reminderDaysBefore),
+      _TaskInput(
+        _titleController.text.trim(),
+        _descriptionController.text.trim(),
+        _dueDate!,
+        _reminderDaysBefore,
+      ),
     );
   }
 
@@ -675,6 +714,16 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
             validator: (value) => value == null || value.trim().isEmpty
                 ? 'Milestone title is required.'
                 : null,
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _descriptionController,
+            minLines: 2,
+            maxLines: 4,
+            decoration: const InputDecoration(
+              labelText: 'Description (optional)',
+              border: OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: 16),
           OutlinedButton.icon(
@@ -745,8 +794,14 @@ class _DeadlineBadge extends StatelessWidget {
 }
 
 class _TaskInput {
-  const _TaskInput(this.title, this.dueDate, this.reminderDaysBefore);
+  const _TaskInput(
+    this.title,
+    this.description,
+    this.dueDate,
+    this.reminderDaysBefore,
+  );
   final String title;
+  final String description;
   final DateTime dueDate;
   final int? reminderDaysBefore;
 }

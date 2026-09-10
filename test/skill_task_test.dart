@@ -32,6 +32,8 @@ void main() {
       goalId: 'goal-id',
       skillId: 'skill-id',
       careerGoalTitle: 'Software Developer',
+      currentLevel: 'Beginner',
+      requiredLevel: 'Advanced',
     );
 
     expect(list.goalId, 'goal-id');

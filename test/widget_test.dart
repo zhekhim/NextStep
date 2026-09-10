@@ -8,7 +8,8 @@ void main() {
   ) async {
     await tester.pumpWidget(const MaterialApp(home: MainNavigationScreen()));
 
-    expect(find.text('Home'), findsNWidgets(2));
+    expect(find.text('NextStep'), findsOneWidget);
+    expect(find.text('Home'), findsOneWidget);
 
     await tester.tap(find.text('Careers'));
     await tester.pumpAndSettle();
@@ -28,6 +29,20 @@ void main() {
 
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
-    expect(find.text('Home'), findsNWidgets(2));
+    expect(find.text('NextStep'), findsOneWidget);
+  });
+
+  testWidgets('navigation labels fit on a narrow phone', (
+    WidgetTester tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(const MaterialApp(home: MainNavigationScreen()));
+
+    expect(find.text('Assessment'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

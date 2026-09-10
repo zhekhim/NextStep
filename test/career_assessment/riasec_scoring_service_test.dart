@@ -97,4 +97,13 @@ void main() {
     expect(matches, hasLength(5));
     expect(matches.first.riasecCode, 'ICR');
   });
+
+  test('RIASEC alignment weights the career code in priority order', () {
+    final alignment = RiasecCareerMatchingService().alignmentPercentage(
+      rankedDimensions: const ['I', 'C', 'E', 'R', 'S', 'A'],
+      careerCode: 'ICE',
+    );
+
+    expect(alignment, 100);
+  });
 }

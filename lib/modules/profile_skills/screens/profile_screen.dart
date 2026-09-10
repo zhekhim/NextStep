@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../../career_intelligence/repositories/career_repository.dart';
 import '../models/profile.dart';
 import '../models/certification.dart';
 import '../models/user_skill.dart';
@@ -37,6 +36,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final ProfileMediaRepository _profileMediaRepository;
   late final ImagePicker _imagePicker;
   late final StreamSubscription<void> _skillChangesSubscription;
+  late final StreamSubscription<void> _profileChangesSubscription;
   Profile? _profile;
   bool _profileLoading = true;
   bool _profileFailed = false;
@@ -55,6 +55,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _skillChangesSubscription = SkillRepository.skillChanges.listen((_) {
       if (mounted) _reloadSkills();
     });
+    _profileChangesSubscription = ProfileRepository.profileChanges.listen((_) {
+      if (mounted) _loadProfile(showLoading: true);
+    });
     _loadProfile();
     _reloadSkills();
   }
@@ -62,6 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void dispose() {
     _skillChangesSubscription.cancel();
+    _profileChangesSubscription.cancel();
     super.dispose();
   }
 
@@ -98,7 +102,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           profile: profile,
           profileRepository: _profileRepository,
           onChangePhoto: _changeProfilePhoto,
-          careerRepository: CareerRepository(),
         ),
       ),
     );

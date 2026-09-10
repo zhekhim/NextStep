@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/riasec_question.dart';
+import '../repositories/riasec_assessment_repository.dart';
 import '../services/riasec_scoring_service.dart';
 import 'riasec_result_screen.dart';
 
@@ -19,6 +20,7 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
 
   final _answers = <int, int>{};
   final _scoringService = RiasecScoringService();
+  final _assessmentRepository = RiasecAssessmentRepository();
   int _currentQuestion = 0;
   bool _hasStarted = false;
   String? _validationMessage;
@@ -115,6 +117,17 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
         questions: _questions,
         answers: _answers,
       );
+      try {
+        await _assessmentRepository.saveResult(result);
+      } catch (_) {
+        if (!mounted) return;
+        setState(
+          () => _validationMessage =
+              'Unable to save your assessment result. Please try again.',
+        );
+        return;
+      }
+      if (!mounted) return;
       final shouldRetake = await Navigator.of(context).push<bool>(
         MaterialPageRoute(builder: (_) => RiasecResultScreen(result: result)),
       );

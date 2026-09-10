@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../models/skill_task.dart';
 import '../services/goal_progress_service.dart';
 
@@ -22,7 +23,7 @@ class UpcomingMilestones extends StatelessWidget {
         child: Text(
           'No upcoming milestones.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Color(0xFFA8A8A8)),
+          style: TextStyle(color: AppColors.textSecondary),
         ),
       );
     }
@@ -38,13 +39,13 @@ class UpcomingMilestones extends StatelessWidget {
               state: progressService.deadlineState(visible[index]),
             ),
             if (index < visible.length - 1)
-              const Divider(height: 25, color: Color(0xFF2A2A2A)),
+              const Divider(height: 25, color: AppColors.hairline),
           ],
           if (remaining > 0) ...[
-            const Divider(height: 25, color: Color(0xFF2A2A2A)),
+            const Divider(height: 25, color: AppColors.hairline),
             Text(
               '$remaining more ${remaining == 1 ? 'milestone' : 'milestones'} shown under the related skills.',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
+              style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
               textAlign: TextAlign.center,
             ),
           ],
@@ -63,12 +64,12 @@ class _MilestoneRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (state) {
-      MilestoneDeadlineState.overdue => ('Overdue', const Color(0xFFFF4D4D)),
-      MilestoneDeadlineState.dueSoon => ('Due Soon', const Color(0xFFFFCC4D)),
-      MilestoneDeadlineState.upcoming => ('Upcoming', const Color(0xFFC8CEFF)),
+      MilestoneDeadlineState.overdue => ('Overdue', AppColors.error),
+      MilestoneDeadlineState.dueSoon => ('Due Soon', AppColors.warning),
+      MilestoneDeadlineState.upcoming => ('Upcoming', AppColors.primaryLight),
       MilestoneDeadlineState.completed => (
         'Completed',
-        const Color(0xFF33D17A),
+        AppColors.success,
       ),
     };
     return Row(
@@ -94,7 +95,7 @@ class _MilestoneRow extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 'Due ${_formatDate(milestone.dueDate)}',
-                style: const TextStyle(fontSize: 12, color: Color(0xFFA8A8A8)),
+                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -123,9 +124,9 @@ class _Container extends StatelessWidget {
     width: double.infinity,
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: const Color(0xFF181818),
+      color: AppColors.surfaceCard,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFF2A2A2A)),
+      border: Border.all(color: AppColors.hairline),
     ),
     child: child,
   );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../profile_skills/repositories/skill_repository.dart';
 import '../models/skill_task.dart';
 import '../repositories/skill_task_repository.dart';
@@ -13,6 +14,8 @@ class SkillTaskList extends StatefulWidget {
     required this.goalId,
     required this.skillId,
     required this.careerGoalTitle,
+    required this.currentLevel,
+    required this.requiredLevel,
     this.onTasksChanged,
     super.key,
   });
@@ -20,6 +23,8 @@ class SkillTaskList extends StatefulWidget {
   final String goalId;
   final String skillId;
   final String careerGoalTitle;
+  final String? currentLevel;
+  final String requiredLevel;
   final VoidCallback? onTasksChanged;
 
   @override
@@ -31,7 +36,9 @@ class _SkillTaskListState extends State<SkillTaskList> {
   final _calendarService = CalendarService();
   final _notificationService = GoalNotificationService.instance;
   List<SkillTask> _tasks = const [];
+  List<SkillMilestoneTemplate> _recommendations = const [];
   bool _loading = true;
+  bool _refreshing = false;
   String? _error;
   String? _busyTaskId;
 
@@ -45,32 +52,74 @@ class _SkillTaskListState extends State<SkillTaskList> {
   void didUpdateWidget(covariant SkillTaskList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.goalId != widget.goalId ||
-        oldWidget.skillId != widget.skillId) {
-      _load();
+        oldWidget.skillId != widget.skillId ||
+        oldWidget.currentLevel != widget.currentLevel ||
+        oldWidget.requiredLevel != widget.requiredLevel) {
+      _load(preserveContent: true);
     }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool preserveContent = false}) async {
     setState(() {
-      _loading = true;
+      if (preserveContent) {
+        _refreshing = true;
+      } else {
+        _loading = true;
+      }
       _error = null;
     });
     try {
-      final tasks = await _repository.getTasksForSkill(
-        goalId: widget.goalId,
-        skillId: widget.skillId,
-      );
+      final values = await Future.wait([
+        _repository.getTasksForSkill(
+          goalId: widget.goalId,
+          skillId: widget.skillId,
+        ),
+        _repository.getRecommendedTemplates(
+          skillId: widget.skillId,
+          currentLevel: widget.currentLevel,
+          requiredLevel: widget.requiredLevel,
+        ),
+      ]);
+      final tasks = values[0] as List<SkillTask>;
+      final addedTemplateIds = tasks
+          .map((task) => task.templateId)
+          .whereType<String>()
+          .toSet();
+      final recommendations = (values[1] as List<SkillMilestoneTemplate>)
+          .where((template) => !addedTemplateIds.contains(template.id))
+          .toList(growable: false);
       if (!mounted) return;
       setState(() {
         _tasks = tasks;
+        _recommendations = recommendations;
         _loading = false;
+        _refreshing = false;
       });
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _error = 'Unable to load milestones.';
         _loading = false;
+        _refreshing = false;
       });
+    }
+  }
+
+  Future<void> _addRecommendedPlan() async {
+    setState(() => _busyTaskId = 'recommended-plan');
+    try {
+      await _repository.addRecommendedPlan(
+        goalId: widget.goalId,
+        skillId: widget.skillId,
+        templates: _recommendations,
+      );
+      await _load();
+      widget.onTasksChanged?.call();
+      _showMessage('Recommended development plan added.');
+    } catch (_) {
+      _showMessage('Unable to add the recommended plan. Try again.');
+    } finally {
+      if (mounted) setState(() => _busyTaskId = null);
     }
   }
 
@@ -299,7 +348,7 @@ class _SkillTaskListState extends State<SkillTaskList> {
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text(
                   'Delete',
-                  style: TextStyle(color: Color(0xFFFF4D4D)),
+                  style: TextStyle(color: AppColors.error),
                 ),
               ),
             ],
@@ -417,25 +466,86 @@ class _SkillTaskListState extends State<SkillTaskList> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Divider(color: Color(0xFF2A2A2A)),
+          if (_refreshing) ...[
+            const LinearProgressIndicator(minHeight: 2),
+            const SizedBox(height: 8),
+          ],
+          const Divider(color: AppColors.hairline),
           const SizedBox(height: 10),
+          if (_recommendations.isNotEmpty) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceBlue,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.primarySoft),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Recommended Development Plan',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 8),
+                  ..._recommendations.map(
+                    (template) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.auto_awesome, size: 16, color: AppColors.primaryLight),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              template.title,
+                              style: const TextStyle(fontSize: 13),
+                            ),
+                          ),
+                          Text(
+                            '${template.suggestedDurationDays}d',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: _busyTaskId == 'recommended-plan'
+                          ? null
+                          : _addRecommendedPlan,
+                      icon: const Icon(Icons.playlist_add),
+                      label: Text('Add Recommended Plan (${_recommendations.length})'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
           if (_tasks.isNotEmpty) ...[
             Text(
               '$completed / ${_tasks.length} completed',
-              style: const TextStyle(fontSize: 12, color: Color(0xFFA8A8A8)),
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 3),
             Text(
               'Plan Status: $planStatus',
-              style: const TextStyle(fontSize: 12, color: Color(0xFFA8A8A8)),
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
               value: progress,
               minHeight: 4,
               borderRadius: BorderRadius.circular(4),
-              color: const Color(0xFF0007CD),
-              backgroundColor: const Color(0xFF2A2A2A),
+              color: completed == _tasks.length
+                  ? AppColors.success
+                  : AppColors.primary,
+              backgroundColor: AppColors.hairlineStrong,
             ),
             const SizedBox(height: 8),
             ..._tasks.map(
@@ -484,11 +594,11 @@ class _TaskRow extends StatelessWidget {
     final (deadlineLabel, deadlineColor) = switch (deadlineState) {
       MilestoneDeadlineState.completed => (
         'Completed',
-        const Color(0xFF33D17A),
+        AppColors.success,
       ),
-      MilestoneDeadlineState.overdue => ('Overdue', const Color(0xFFFF4D4D)),
-      MilestoneDeadlineState.dueSoon => ('Due Soon', const Color(0xFFFFCC4D)),
-      MilestoneDeadlineState.upcoming => ('Upcoming', const Color(0xFFC8CEFF)),
+      MilestoneDeadlineState.overdue => ('Overdue', AppColors.error),
+      MilestoneDeadlineState.dueSoon => ('Due Soon', AppColors.warning),
+      MilestoneDeadlineState.upcoming => ('Upcoming', AppColors.primaryLight),
     };
 
     return Padding(
@@ -514,8 +624,8 @@ class _TaskRow extends StatelessWidget {
                           ? TextDecoration.lineThrough
                           : null,
                       color: task.isCompleted
-                          ? const Color(0xFF888888)
-                          : Colors.white,
+                          ? AppColors.textMuted
+                          : AppColors.textPrimary,
                     ),
                   ),
                   if (task.description != null) ...[
@@ -524,7 +634,7 @@ class _TaskRow extends StatelessWidget {
                       task.description!,
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFC8C8C8),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -534,7 +644,7 @@ class _TaskRow extends StatelessWidget {
                       'Suggested evidence: ${task.completionEvidence}',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFA8A8A8),
+                        color: AppColors.textSecondary,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
@@ -548,7 +658,7 @@ class _TaskRow extends StatelessWidget {
                         : 'Due: ${_formatDate(task.dueDate)}',
                     style: const TextStyle(
                       fontSize: 12,
-                      color: Color(0xFFA8A8A8),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -559,7 +669,7 @@ class _TaskRow extends StatelessWidget {
                       'Reminder: ${_reminderLabel(task.reminderDaysBefore)}',
                       style: const TextStyle(
                         fontSize: 12,
-                        color: Color(0xFFA8A8A8),
+                        color: AppColors.textSecondary,
                       ),
                     ),
                   ],
@@ -579,6 +689,9 @@ class _TaskRow extends StatelessWidget {
                     ),
                     style: OutlinedButton.styleFrom(
                       visualDensity: VisualDensity.compact,
+                      backgroundColor: AppColors.surfaceElevated,
+                      foregroundColor: AppColors.textPrimary,
+                      side: const BorderSide(color: AppColors.hairlineStrong),
                     ),
                   ),
                 ],
@@ -595,7 +708,7 @@ class _TaskRow extends StatelessWidget {
             tooltip: 'Delete milestone',
             onPressed: busy ? null : onDelete,
             icon: const Icon(Icons.delete_outline, size: 18),
-            color: const Color(0xFFFF4D4D),
+            color: AppColors.error,
             visualDensity: VisualDensity.compact,
           ),
         ],
@@ -756,7 +869,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
               padding: EdgeInsets.only(top: 8),
               child: Text(
                 'Please select a due date.',
-                style: TextStyle(fontSize: 12, color: Color(0xFFA8A8A8)),
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
               ),
             ),
         ],

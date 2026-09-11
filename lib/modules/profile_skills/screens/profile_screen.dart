@@ -4,6 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../career_assessment/models/assessment_profile.dart';
+import '../../career_assessment/repositories/assessment_profile_repository.dart';
+import '../../career_assessment/screens/riasec_result_screen.dart';
 import '../models/profile.dart';
 import '../models/certification.dart';
 import '../models/user_skill.dart';
@@ -20,10 +24,12 @@ class ProfileScreen extends StatefulWidget {
     super.key,
     this.profileRepository,
     this.skillRepository,
+    this.assessmentRepository,
   });
 
   final ProfileRepository? profileRepository;
   final SkillRepository? skillRepository;
+  final AssessmentProfileRepository? assessmentRepository;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -34,10 +40,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late final SkillRepository _skillRepository;
   late final CertificationRepository _certificationRepository;
   late final ProfileMediaRepository _profileMediaRepository;
+  late final AssessmentProfileRepository _assessmentRepository;
   late final ImagePicker _imagePicker;
   late final StreamSubscription<void> _skillChangesSubscription;
   late final StreamSubscription<void> _profileChangesSubscription;
+  late final StreamSubscription<void> _assessmentChangesSubscription;
   Profile? _profile;
+  AssessmentProfile? _latestAssessment;
   bool _profileLoading = true;
   bool _profileFailed = false;
   List<UserSkill> _skills = const [];
@@ -51,6 +60,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _skillRepository = widget.skillRepository ?? SkillRepository();
     _certificationRepository = CertificationRepository();
     _profileMediaRepository = ProfileMediaRepository();
+    _assessmentRepository =
+        widget.assessmentRepository ?? AssessmentProfileRepository();
     _imagePicker = ImagePicker();
     _skillChangesSubscription = SkillRepository.skillChanges.listen((_) {
       if (mounted) _reloadSkills();
@@ -58,14 +69,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _profileChangesSubscription = ProfileRepository.profileChanges.listen((_) {
       if (mounted) _loadProfile(showLoading: true);
     });
+    _assessmentChangesSubscription =
+        AssessmentProfileRepository.assessmentChanges.listen((_) {
+          if (mounted) _loadLatestAssessment();
+        });
     _loadProfile();
     _reloadSkills();
+    _loadLatestAssessment();
   }
 
   @override
   void dispose() {
     _skillChangesSubscription.cancel();
     _profileChangesSubscription.cancel();
+    _assessmentChangesSubscription.cancel();
     super.dispose();
   }
 
@@ -204,6 +221,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _loadLatestAssessment() async {
+    try {
+      final result = await _assessmentRepository.getLatestResult();
+      if (mounted) setState(() => _latestAssessment = result);
+    } catch (_) {
+      if (mounted) setState(() => _latestAssessment = null);
+    }
+  }
+
   Future<void> _openSkills() async {
     await Navigator.push<void>(
       context,
@@ -227,6 +253,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _openLatestAssessment() async {
+    final assessment = _latestAssessment;
+    if (assessment == null) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RiasecResultScreen(result: assessment.toResult()),
+      ),
+    );
+  }
+
   void _showNextStep(String feature) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('$feature will be connected in the next step.')),
@@ -245,11 +282,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } else {
       content = _ProfileContent(
         profile: _profile!,
+        latestAssessment: _latestAssessment,
         skills: _skills,
         skillsLoading: _skillsLoading,
         skillsFailed: _skillsFailed,
         onRetrySkills: _reloadSkills,
         onEditProfile: () => _openEditProfile(_profile!),
+        onOpenAssessment: _openLatestAssessment,
         onManageSkills: _openSkills,
         onManageCertifications: () => Navigator.push<void>(
           context,
@@ -273,11 +312,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 class _ProfileContent extends StatelessWidget {
   const _ProfileContent({
     required this.profile,
+    required this.latestAssessment,
     required this.skills,
     required this.skillsLoading,
     required this.skillsFailed,
     required this.onRetrySkills,
     required this.onEditProfile,
+    required this.onOpenAssessment,
     required this.onManageSkills,
     required this.onManageCertifications,
     required this.onDeleteAccount,
@@ -285,11 +326,13 @@ class _ProfileContent extends StatelessWidget {
   });
 
   final Profile profile;
+  final AssessmentProfile? latestAssessment;
   final List<UserSkill> skills;
   final bool skillsLoading;
   final bool skillsFailed;
   final VoidCallback onRetrySkills;
   final VoidCallback onEditProfile;
+  final VoidCallback onOpenAssessment;
   final VoidCallback onManageSkills;
   final VoidCallback onManageCertifications;
   final VoidCallback onDeleteAccount;
@@ -320,6 +363,13 @@ class _ProfileContent extends StatelessWidget {
         if (profile.bio != null && profile.bio!.isNotEmpty) ...[
           const SizedBox(height: 12),
           _BioCard(bio: profile.bio!),
+        ],
+        if (latestAssessment != null) ...[
+          const SizedBox(height: 12),
+          _RiasecResultCard(
+            assessment: latestAssessment!,
+            onPressed: onOpenAssessment,
+          ),
         ],
         const SizedBox(height: 20),
         const Text(
@@ -390,6 +440,173 @@ class _ProfileContent extends StatelessWidget {
       ],
     );
   }
+}
+
+class _RiasecResultCard extends StatelessWidget {
+  const _RiasecResultCard({
+    required this.assessment,
+    required this.onPressed,
+  });
+
+  final AssessmentProfile assessment;
+  final VoidCallback onPressed;
+
+  static const _dimensionNames = {
+    'R': 'Realistic',
+    'I': 'Investigative',
+    'A': 'Artistic',
+    'S': 'Social',
+    'E': 'Enterprising',
+    'C': 'Conventional',
+  };
+
+  static const _chipColors = [
+    AppColors.violetLight,
+    Color(0xFF00C7FF),
+    Color(0xFF00D7B0),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final date = assessment.createdAt.toLocal();
+    final dateText =
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    final dimensions = assessment.riasecCode.split('');
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 5,
+                height: 70,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF9B6CFF), Color(0xFF7357FF)],
+                  ),
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            'RIASEC RESULT',
+                            style: TextStyle(
+                              color: Color(0xFFB7C5E2),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          'Completed $dateText',
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      height: 35,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ShaderMask(
+                              shaderCallback: (bounds) => const LinearGradient(
+                                colors: [
+                                  Color(0xFF9B6CFF),
+                                  Color(0xFF5B7CFF),
+                                ],
+                              ).createShader(bounds),
+                              child: Text(
+                                assessment.riasecCode,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 27,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            for (
+                              var index = 0;
+                              index < dimensions.length;
+                              index++
+                            ) ...[
+                              if (index > 0) const SizedBox(width: 7),
+                              _RiasecDimensionChip(
+                                label:
+                                    _dimensionNames[dimensions[index]] ??
+                                    dimensions[index],
+                                color: _chipColors[index],
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(
+                Icons.arrow_forward_ios,
+                size: 18,
+                color: Color(0xFFB7C5E2),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RiasecDimensionChip extends StatelessWidget {
+  const _RiasecDimensionChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: color.withValues(alpha: 0.85)),
+      boxShadow: [
+        BoxShadow(color: color.withValues(alpha: 0.08), blurRadius: 10),
+      ],
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: color,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
 }
 
 class _IdentityCard extends StatelessWidget {

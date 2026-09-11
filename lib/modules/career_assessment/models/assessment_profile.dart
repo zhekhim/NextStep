@@ -85,16 +85,18 @@ class AssessmentProfile {
   }
 
   RiasecResult toResult() {
-    final scores = RiasecScoringService.dimensions
-        .map(
-          (dimension) => RiasecDimensionScore(
+    final scoresByDimension = {
+      for (final dimension in RiasecScoringService.dimensions)
+        dimension: RiasecDimensionScore(
             dimension: dimension,
             average: 1 + (percentages[dimension] ?? 0) / 25,
             percentage: percentages[dimension] ?? 0,
           ),
-        )
-        .toList();
-    scores.sort((left, right) => right.percentage.compareTo(left.percentage));
-    return RiasecResult(scores);
+    };
+    return RiasecResult(
+      rankedDimensions
+          .map((dimension) => scoresByDimension[dimension]!)
+          .toList(growable: false),
+    );
   }
 }

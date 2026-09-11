@@ -507,9 +507,15 @@ class _GoalDetailsState extends State<_GoalDetails> {
           ),
         ),
         const SizedBox(height: 20),
-        const Text(
-          'Required Skills',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        const Row(
+          children: [
+            Icon(Icons.bar_chart_rounded, color: AppColors.primaryLight),
+            SizedBox(width: 9),
+            Text(
+              'Required Skills',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+            ),
+          ],
         ),
         const SizedBox(height: 12),
         SingleChildScrollView(
@@ -524,6 +530,31 @@ class _GoalDetailsState extends State<_GoalDetails> {
                       selected:
                           result.requirement.skillId ==
                           selectedSkill.requirement.skillId,
+                      showCheckmark: false,
+                      selectedColor: AppColors.primary,
+                      backgroundColor: AppColors.surfaceCard,
+                      side: BorderSide(
+                        color:
+                            result.requirement.skillId ==
+                                selectedSkill.requirement.skillId
+                            ? AppColors.primaryLight
+                            : AppColors.hairlineStrong,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      labelStyle: TextStyle(
+                        color:
+                            result.requirement.skillId ==
+                                selectedSkill.requirement.skillId
+                            ? Colors.white
+                            : AppColors.textPrimary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 9,
+                      ),
                       onSelected: (_) => setState(
                         () => _selectedSkillId = result.requirement.skillId,
                       ),
@@ -706,43 +737,140 @@ class _SkillGapRow extends StatelessWidget {
     return Container(
       width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primarySoft),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            result.requirement.skillName,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.school_outlined,
+                        color: AppColors.primaryLight,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Text(
+                        result.requirement.skillName,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: _SkillLevelSummary(
+                        label: 'Required Level',
+                        value: result.requirement.requiredLevel,
+                        valueColor: AppColors.sky,
+                      ),
+                    ),
+                    Expanded(
+                      child: _SkillLevelSummary(
+                        label: 'Current Level',
+                        value: result.currentLevel ?? 'None',
+                        valueColor: result.currentLevel == null
+                            ? AppColors.error
+                            : AppColors.textPrimary,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(color: color),
+                      ),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
-          Text('Required Skill Level: ${result.requirement.requiredLevel}'),
-          const SizedBox(height: 2),
-          Text(
-            'Current Skill Level: ${result.currentLevel ?? 'None'}',
-            style: const TextStyle(color: AppColors.textSecondary),
+          const Divider(height: 1, color: AppColors.hairlineStrong),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: Text(
+              'Skill Milestones',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
           ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: TextStyle(color: color, fontWeight: FontWeight.w600),
-          ),
-          SkillTaskList(
-            goalId: goalId,
-            skillId: result.requirement.skillId,
-            careerGoalTitle: careerGoalTitle,
-            currentLevel: result.currentLevel,
-            requiredLevel: result.requirement.requiredLevel,
-            onTasksChanged: onTasksChanged,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: SkillTaskList(
+              goalId: goalId,
+              skillId: result.requirement.skillId,
+              careerGoalTitle: careerGoalTitle,
+              currentLevel: result.currentLevel,
+              requiredLevel: result.requirement.requiredLevel,
+              onTasksChanged: onTasksChanged,
+            ),
           ),
         ],
       ),
     );
   }
+}
+
+class _SkillLevelSummary extends StatelessWidget {
+  const _SkillLevelSummary({
+    required this.label,
+    required this.value,
+    required this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final Color valueColor;
+
+  @override
+  Widget build(BuildContext context) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        value,
+        style: TextStyle(color: valueColor, fontWeight: FontWeight.w600),
+      ),
+    ],
+  );
 }
 
 class _SkillGapMessage extends StatelessWidget {

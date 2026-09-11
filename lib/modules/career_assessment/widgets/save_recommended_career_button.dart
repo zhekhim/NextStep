@@ -92,6 +92,7 @@ class _SaveDetailsDialogState extends State<_SaveDetailsDialog> {
               initialValue: _status,
               decoration: const InputDecoration(labelText: 'Interest status *'),
               items: CareerShortlist.statuses
+                  .where((status) => status != 'Not Interested')
                   .map(
                     (value) =>
                         DropdownMenuItem(value: value, child: Text(value)),

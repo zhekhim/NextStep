@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../../modules/career_assessment/models/riasec_assessment_profile.dart';
-import '../../modules/career_assessment/repositories/riasec_assessment_repository.dart';
+import '../../modules/career_assessment/models/assessment_profile.dart';
+import '../../modules/career_assessment/repositories/assessment_profile_repository.dart';
 import '../../modules/career_assessment/services/riasec_career_matching_service.dart';
 import '../../modules/career_goals/models/career_goal.dart';
 import '../../modules/career_goals/repositories/career_goal_repository.dart';
@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _skillsRepository = SkillRepository();
   final _goals = CareerGoalRepository();
   final _skillGap = SkillGapService();
-  final _assessments = RiasecAssessmentRepository();
+  final _assessments = AssessmentProfileRepository();
   final _riasecMatching = RiasecCareerMatchingService();
   late final StreamSubscription<void> _skillChanges;
   late final StreamSubscription<void> _goalChanges;
@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _skillChanges = SkillRepository.skillChanges.listen((_) => _load());
     _goalChanges = CareerGoalRepository.goalChanges.listen((_) => _load());
-    _assessmentChanges = RiasecAssessmentRepository.assessmentChanges.listen(
+    _assessmentChanges = AssessmentProfileRepository.assessmentChanges.listen(
       (_) => _load(),
     );
     _load();
@@ -70,12 +70,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _profiles.getCurrentProfile(),
         _skillsRepository.getUserSkills(),
         _goals.getGoal(),
-        _assessments.getCurrentResult(),
+        _assessments.getLatestResult(),
       ]);
       final profile = values[0] as Profile;
       final skills = values[1] as List<UserSkill>;
       final goal = values[2] as CareerGoal?;
-      final assessment = values[3] as RiasecAssessmentProfile?;
+      final assessment = values[3] as AssessmentProfile?;
       var match = 0.0;
       if (goal != null) {
         final requirements = await _goals.getRequirements(goal.career.id);

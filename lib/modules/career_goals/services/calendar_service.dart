@@ -56,6 +56,11 @@ class CalendarService {
     required SkillTask milestone,
     required String careerGoalTitle,
   }) async {
+    final permission = await _calendar.requestPermissions();
+    if (permission != CalendarPermissionStatus.granted) {
+      throw const CalendarPermissionDeniedException();
+    }
+
     final startDate = DateTime(
       milestone.dueDate.year,
       milestone.dueDate.month,

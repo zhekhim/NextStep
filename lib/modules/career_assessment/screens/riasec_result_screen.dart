@@ -3,10 +3,12 @@ import 'package:printing/printing.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../../career_intelligence/models/career.dart';
 import '../../career_intelligence/repositories/career_repository.dart';
 import '../../career_intelligence/screens/career_detail_screen.dart';
 import '../services/assessment_report_service.dart';
+import '../widgets/career_recommendation_evaluation_button.dart';
 import '../models/assessment_dimension.dart';
 import '../models/riasec_career_match.dart';
 import '../repositories/assessment_dimension_repository.dart';
@@ -17,10 +19,12 @@ class RiasecResultScreen extends StatefulWidget {
   const RiasecResultScreen({
     super.key,
     required this.result,
+    required this.assessmentProfileId,
     this.loadCareers,
     this.loadDimensions,
   });
   final RiasecResult result;
+  final String assessmentProfileId;
   final Future<List<Career>> Function()? loadCareers;
   final Future<List<AssessmentDimension>> Function()? loadDimensions;
   @override
@@ -28,10 +32,10 @@ class RiasecResultScreen extends StatefulWidget {
 }
 
 class _RiasecResultScreenState extends State<RiasecResultScreen> {
-  static const _blue = Color(0xFF0007CD);
-  static const _card = Color(0xFF181818);
-  static const _surface = Color(0xFF222222);
-  static const _secondary = Color(0xFFA8A8A8);
+  static const _blue = AppColors.primary;
+  static const _card = AppColors.surfaceCard;
+  static const _surface = AppColors.hairlineStrong;
+  static const _secondary = AppColors.textSecondary;
   static const _names = {
     'R': 'Realistic',
     'I': 'Investigative',
@@ -180,7 +184,7 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
                   Text(
                     widget.result.code,
                     style: const TextStyle(
-                      color: Color(0xFF1A26FF),
+                      color: AppColors.violetLight,
                       fontSize: 48,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 8,
@@ -249,7 +253,7 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
                 onPressed: () => Navigator.of(context).pop(true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _blue,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.textPrimary,
                 ),
                 child: const Text('Retake Assessment'),
               ),
@@ -287,7 +291,7 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
         children: [
           Text(
             _dimensionsError!,
-            style: const TextStyle(color: Color(0xFFFF4D4D)),
+            style: const TextStyle(color: AppColors.error),
           ),
           const SizedBox(height: 12),
           OutlinedButton(
@@ -327,7 +331,7 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
     if (_error != null) {
       return Column(
         children: [
-          Text(_error!, style: const TextStyle(color: Color(0xFFFF4D4D))),
+          Text(_error!, style: const TextStyle(color: AppColors.error)),
           const SizedBox(height: 12),
           OutlinedButton(onPressed: _loadMatches, child: const Text('Retry')),
         ],
@@ -344,7 +348,11 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
         for (var i = 0; i < _matches.length; i++)
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: _MatchCard(rank: i + 1, match: _matches[i]),
+            child: _MatchCard(
+              rank: i + 1,
+              match: _matches[i],
+              assessmentProfileId: widget.assessmentProfileId,
+            ),
           ),
       ],
     );
@@ -368,16 +376,22 @@ class _Radar extends StatelessWidget {
               for (final dimension in RiasecScoringService.dimensions)
                 RadarEntry(value: scores[dimension]!),
             ],
-            fillColor: const Color(0xFF0007CD).withValues(alpha: .22),
-            borderColor: const Color(0xFF1A26FF),
+            borderColor: AppColors.cyan,
+            fillColor: AppColors.cyan.withValues(alpha: .18),
             borderWidth: 2,
           ),
         ],
         radarBackgroundColor: Colors.transparent,
+        radarBorderData: const BorderSide(color: AppColors.hairlineStrong),
         radarShape: RadarShape.polygon,
         tickCount: 5,
         ticksTextStyle: const TextStyle(color: Colors.transparent),
-        titleTextStyle: const TextStyle(color: Colors.white, fontSize: 13),
+        tickBorderData: const BorderSide(color: AppColors.hairlineStrong),
+        gridBorderData: const BorderSide(color: AppColors.hairlineStrong),
+        titleTextStyle: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 13,
+        ),
         getTitle: (index, angle) => RadarChartTitle(
           text: RiasecScoringService.dimensions[index],
           angle: 0,
@@ -396,16 +410,16 @@ class _ScoreCard extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: const Color(0xFF181818),
+      color: AppColors.surfaceCard,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFF222222)),
+      border: Border.all(color: AppColors.hairlineStrong),
     ),
     child: Row(
       children: [
         Text(
           score.dimension,
           style: const TextStyle(
-            color: Color(0xFF1A26FF),
+            color: AppColors.violetLight,
             fontSize: 20,
             fontWeight: FontWeight.w700,
           ),
@@ -420,7 +434,7 @@ class _ScoreCard extends StatelessWidget {
         Text(
           '${score.percentage.toStringAsFixed(0)}%',
           style: const TextStyle(
-            color: Color(0xFF1A26FF),
+            color: AppColors.cyan,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -446,9 +460,9 @@ class _StrongCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.violetSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF222222)),
+        border: Border.all(color: AppColors.violetLight.withValues(alpha: 0.65)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,7 +470,7 @@ class _StrongCard extends StatelessWidget {
           Text(
             '$rank',
             style: const TextStyle(
-              color: Color(0xFF1A26FF),
+              color: AppColors.violetLight,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -476,7 +490,7 @@ class _StrongCard extends StatelessWidget {
                     Text(
                       score.dimension,
                       style: const TextStyle(
-                        color: Color(0xFF1A26FF),
+                        color: AppColors.violetLight,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -487,7 +501,7 @@ class _StrongCard extends StatelessWidget {
                   Text(
                     description,
                     style: const TextStyle(
-                      color: Color(0xFFA8A8A8),
+                      color: AppColors.textSecondary,
                       height: 1.4,
                     ),
                   ),
@@ -497,7 +511,7 @@ class _StrongCard extends StatelessWidget {
                   Text(
                     'Characteristics: $characteristics',
                     style: const TextStyle(
-                      color: Color(0xFFA8A8A8),
+                      color: AppColors.textSecondary,
                       height: 1.4,
                     ),
                   ),
@@ -512,16 +526,21 @@ class _StrongCard extends StatelessWidget {
 }
 
 class _MatchCard extends StatelessWidget {
-  const _MatchCard({required this.rank, required this.match});
+  const _MatchCard({
+    required this.rank,
+    required this.match,
+    required this.assessmentProfileId,
+  });
   final int rank;
   final RiasecCareerMatch match;
+  final String assessmentProfileId;
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: const Color(0xFF181818),
+      color: AppColors.surfaceBlue,
       borderRadius: BorderRadius.circular(12),
-      border: Border.all(color: const Color(0xFF222222)),
+      border: Border.all(color: AppColors.sky.withValues(alpha: 0.65)),
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,7 +550,7 @@ class _MatchCard extends StatelessWidget {
             Text(
               '#$rank',
               style: const TextStyle(
-                color: Color(0xFF1A26FF),
+                color: AppColors.sky,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -550,7 +569,7 @@ class _MatchCard extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           match.career.description,
-          style: const TextStyle(color: Color(0xFFA8A8A8)),
+          style: const TextStyle(color: AppColors.textSecondary),
         ),
         const SizedBox(height: 10),
         OutlinedButton(
@@ -560,6 +579,10 @@ class _MatchCard extends StatelessWidget {
             ),
           ),
           child: const Text('Explore Career'),
+        ),
+        CareerRecommendationEvaluationButton(
+          assessmentProfileId: assessmentProfileId,
+          careerId: match.career.id,
         ),
       ],
     ),

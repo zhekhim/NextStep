@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../models/assessment_profile.dart';
 import '../repositories/assessment_profile_repository.dart';
 
@@ -14,7 +15,7 @@ class AssessmentHistoryScreen extends StatefulWidget {
 }
 
 class _AssessmentHistoryScreenState extends State<AssessmentHistoryScreen> {
-  static const _secondary = Color(0xFFA8A8A8);
+  static const _secondary = AppColors.textSecondary;
   static const _dimensionNames = {
     'R': 'Realistic',
     'I': 'Investigative',
@@ -74,7 +75,7 @@ class _AssessmentHistoryScreenState extends State<AssessmentHistoryScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(_error!, style: const TextStyle(color: Color(0xFFFF4D4D))),
+              Text(_error!, style: const TextStyle(color: AppColors.error)),
               const SizedBox(height: 12),
               OutlinedButton(
                 onPressed: _loadHistory,
@@ -124,9 +125,9 @@ class _HistoryCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF181818),
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF222222)),
+        border: Border.all(color: AppColors.hairlineStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +138,7 @@ class _HistoryCard extends StatelessWidget {
                 child: Text(
                   profile.riasecCode,
                   style: const TextStyle(
-                    color: Color(0xFF1A26FF),
+                    color: AppColors.violetLight,
                     fontSize: 25,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 4,
@@ -146,7 +147,7 @@ class _HistoryCard extends StatelessWidget {
               ),
               Text(
                 _formatDate(profile.createdAt.toLocal()),
-                style: const TextStyle(color: Color(0xFFA8A8A8)),
+                style: const TextStyle(color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -165,8 +166,8 @@ class _HistoryCard extends StatelessWidget {
                   child: LinearProgressIndicator(
                     value: score.percentage / 100,
                     minHeight: 6,
-                    color: const Color(0xFF0007CD),
-                    backgroundColor: const Color(0xFF222222),
+                    color: AppColors.primaryLight,
+                    backgroundColor: AppColors.hairlineStrong,
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
@@ -176,7 +177,7 @@ class _HistoryCard extends StatelessWidget {
                   child: Text(
                     '${score.percentage.toStringAsFixed(0)}%',
                     textAlign: TextAlign.end,
-                    style: const TextStyle(fontSize: 12),
+                    style: const TextStyle(fontSize: 12, color: AppColors.cyan),
                   ),
                 ),
               ],

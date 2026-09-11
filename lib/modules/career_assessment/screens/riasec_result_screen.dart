@@ -10,9 +10,12 @@ import '../../career_intelligence/screens/career_detail_screen.dart';
 import '../services/assessment_report_service.dart';
 import '../widgets/career_recommendation_evaluation_button.dart';
 import '../models/assessment_dimension.dart';
+import '../models/career_assessment_profile.dart';
 import '../models/riasec_career_match.dart';
 import '../repositories/assessment_dimension_repository.dart';
+import '../repositories/career_assessment_profile_repository.dart';
 import '../services/riasec_scoring_service.dart';
+import '../services/riasec_career_matching_service.dart';
 import 'assessment_history_screen.dart';
 
 class RiasecResultScreen extends StatefulWidget {
@@ -21,11 +24,13 @@ class RiasecResultScreen extends StatefulWidget {
     required this.result,
     required this.assessmentProfileId,
     this.loadCareers,
+    this.loadProfiles,
     this.loadDimensions,
   });
   final RiasecResult result;
   final String assessmentProfileId;
   final Future<List<Career>> Function()? loadCareers;
+  final Future<List<CareerAssessmentProfile>> Function()? loadProfiles;
   final Future<List<AssessmentDimension>> Function()? loadDimensions;
   @override
   State<RiasecResultScreen> createState() => _RiasecResultScreenState();
@@ -100,24 +105,15 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
       _error = null;
     });
     try {
-      final careers =
-          await (widget.loadCareers?.call() ??
-              CareerRepository().getCareersByRiasecCode(widget.result.code));
-      final matchingCareers = widget.loadCareers == null
-          ? careers
-          : careers
-                .where(
-                  (career) =>
-                      career.riasecCode.isEmpty ||
-                      career.riasecCode == widget.result.code,
-                )
-                .toList(growable: false);
-      final matches = matchingCareers
-          .take(5)
-          .map(
-            (career) => RiasecCareerMatch(career: career, matchPercentage: 100),
-          )
-          .toList(growable: false);
+      final careers = await (widget.loadCareers?.call() ??
+          CareerRepository().getCareers());
+      final profiles = await (widget.loadProfiles?.call() ??
+          CareerAssessmentProfileRepository().getProfiles());
+      final matches = RiasecCareerMatchingService().findTopMatches(
+        result: widget.result,
+        profiles: profiles,
+        careers: careers,
+      );
       if (mounted) setState(() => _matches = matches);
     } catch (error) {
       debugPrint('Unable to generate career matches: $error');

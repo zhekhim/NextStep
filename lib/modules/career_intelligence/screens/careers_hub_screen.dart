@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import 'career_explorer_screen.dart';
 import 'career_fairs_screen.dart';
-import 'career_interest_types_screen.dart';
 import 'interested_careers_screen.dart';
 import 'labour_market_screen.dart';
 
@@ -12,14 +11,12 @@ class CareersHubScreen extends StatelessWidget {
     this.exploreBuilder,
     this.interestedCareersBuilder,
     this.careerFairsBuilder,
-    this.interestTypesBuilder,
     this.labourMarketBuilder,
   });
 
   final WidgetBuilder? exploreBuilder;
   final WidgetBuilder? interestedCareersBuilder;
   final WidgetBuilder? careerFairsBuilder;
-  final WidgetBuilder? interestTypesBuilder;
   final WidgetBuilder? labourMarketBuilder;
 
   @override
@@ -43,13 +40,6 @@ class CareersHubScreen extends StatelessWidget {
         description: 'Discover upcoming career events.',
         icon: Icons.event_outlined,
         builder: careerFairsBuilder ?? (_) => const CareerFairsScreen(),
-      ),
-      _CareerDestination(
-        title: 'Career Interest Types',
-        description: 'Learn about career-interest personality types.',
-        icon: Icons.psychology_outlined,
-        builder:
-            interestTypesBuilder ?? (_) => const CareerInterestTypesScreen(),
       ),
       _CareerDestination(
         title: 'Malaysia Labour Market',

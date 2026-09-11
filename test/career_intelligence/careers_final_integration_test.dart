@@ -16,7 +16,7 @@ import 'package:untitled/modules/career_intelligence/screens/labour_market_scree
 void main() {
   Widget app(Widget child) => MaterialApp(home: child);
 
-  testWidgets('all five Careers Hub destinations open and return normally', (
+  testWidgets('all four Careers Hub destinations open and return normally', (
     tester,
   ) async {
     await _useCompactAndroidSize(tester);
@@ -24,7 +24,6 @@ void main() {
       'Explore Careers': 'Explore destination',
       'Interested Careers': 'Interested destination',
       'Career Fairs': 'Fairs destination',
-      'Career Interest Types': 'Interest types destination',
       'Malaysia Labour Market': 'Labour destination',
     };
     await tester.pumpWidget(
@@ -34,8 +33,6 @@ void main() {
           interestedCareersBuilder: (_) =>
               const _Destination('Interested destination'),
           careerFairsBuilder: (_) => const _Destination('Fairs destination'),
-          interestTypesBuilder: (_) =>
-              const _Destination('Interest types destination'),
           labourMarketBuilder: (_) => const _Destination('Labour destination'),
         ),
       ),

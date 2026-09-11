@@ -42,14 +42,13 @@ void main() {
   Widget app(Widget child) => MaterialApp(home: child);
 
   group('Careers hub', () {
-    testWidgets('displays all five destinations', (tester) async {
+    testWidgets('displays all four destinations', (tester) async {
       await tester.pumpWidget(app(const CareersHubScreen()));
 
       for (final title in [
         'Explore Careers',
         'Interested Careers',
         'Career Fairs',
-        'Career Interest Types',
         'Malaysia Labour Market',
       ]) {
         await tester.scrollUntilVisible(find.text(title), 100);
@@ -206,7 +205,7 @@ void main() {
     (tester) async {
       await tester.pumpWidget(app(const MainNavigationScreen()));
       expect(find.byType(NavigationDestination), findsNWidgets(5));
-      expect(find.text('Home'), findsNWidgets(2));
+      expect(find.text('Home'), findsOneWidget);
       expect(find.text('Assessment'), findsOneWidget);
       expect(find.text('Goals'), findsOneWidget);
       expect(find.text('Profile'), findsOneWidget);

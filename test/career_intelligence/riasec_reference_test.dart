@@ -61,11 +61,10 @@ void main() {
     },
   );
 
-  testWidgets('Hub opens Career Interest Types', (tester) async {
+  testWidgets('Careers Hub does not duplicate Career Interest Types', (
+    tester,
+  ) async {
     await tester.pumpWidget(const MaterialApp(home: CareersHubScreen()));
-    await tester.scrollUntilVisible(find.text('Career Interest Types'), 100);
-    await tester.tap(find.text('Career Interest Types'));
-    await tester.pumpAndSettle();
-    expect(find.byType(CareerInterestTypesScreen), findsOneWidget);
+    expect(find.text('Career Interest Types'), findsNothing);
   });
 }

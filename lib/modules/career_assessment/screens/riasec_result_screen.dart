@@ -376,8 +376,8 @@ class _Radar extends StatelessWidget {
               for (final dimension in RiasecScoringService.dimensions)
                 RadarEntry(value: scores[dimension]!),
             ],
-            borderColor: AppColors.cyan,
-            fillColor: AppColors.cyan.withValues(alpha: .18),
+            borderColor: AppColors.primaryLight,
+            fillColor: AppColors.primaryLight.withValues(alpha: .18),
             borderWidth: 2,
           ),
         ],

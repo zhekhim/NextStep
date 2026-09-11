@@ -13,6 +13,23 @@ class AssessmentProfile {
   final String riasecCode;
   final Map<String, double> percentages;
 
+  List<String> get rankedDimensions {
+    final remaining = RiasecScoringService.dimensions
+        .where((dimension) => !riasecCode.contains(dimension))
+        .toList()
+      ..sort((left, right) {
+        final comparison = (percentages[right] ?? 0).compareTo(
+          percentages[left] ?? 0,
+        );
+        return comparison != 0
+            ? comparison
+            : RiasecScoringService.dimensions
+                  .indexOf(left)
+                  .compareTo(RiasecScoringService.dimensions.indexOf(right));
+      });
+    return [...riasecCode.split(''), ...remaining];
+  }
+
   static const columns = {
     'R': 'realistic',
     'I': 'investigative',

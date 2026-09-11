@@ -3,6 +3,8 @@ begin;
 alter table public.career_shortlists
   add column if not exists status text not null default 'Interested';
 alter table public.career_shortlists
+  add column if not exists updated_at timestamptz not null default now();
+alter table public.career_shortlists
   drop constraint if exists career_shortlists_status_check;
 alter table public.career_shortlists
   add constraint career_shortlists_status_check

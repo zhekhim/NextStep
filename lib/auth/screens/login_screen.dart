@@ -155,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: FilledButton(
                         onPressed: _isLoading ? null : _login,
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.violet,
+                          backgroundColor: const Color(0xFF4169E1),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),

@@ -27,3 +27,30 @@ flutter pub add flutter_local_notifications
 flutter pub add http
 flutter pub get
 
+## Supabase credentials
+
+The real Supabase config file is ignored by Git to avoid committing the secret
+key. Create your local config from the example:
+
+```sh
+copy lib\core\supabase\supabase_config.example.dart lib\core\supabase\supabase_config.dart
+```
+
+Then put your actual Supabase URL and secret key in:
+
+```text
+lib/core/supabase/supabase_config.dart
+```
+
+Alternatively, run the app with the Supabase key supplied at build time:
+
+```sh
+flutter run --dart-define=SUPABASE_SECRET_KEY=your-secret-key
+```
+
+You can also override the project URL when needed:
+
+```sh
+flutter run --dart-define=SUPABASE_URL=https://your-project.supabase.co --dart-define=SUPABASE_SECRET_KEY=your-secret-key
+```
+

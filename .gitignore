@@ -13,6 +13,9 @@
 migrate_working_dir/
 .codex/
 
+# Local Supabase credentials
+lib/core/supabase/supabase_config.dart
+
 # IntelliJ related
 *.iml
 *.ipr

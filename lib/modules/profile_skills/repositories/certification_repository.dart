@@ -41,28 +41,32 @@ class CertificationRepository {
     }
     final safeName = fileName.replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_');
     final path = '$_userId/${DateTime.now().millisecondsSinceEpoch}_$safeName';
-    await _supabase.storage
-        .from('certificates')
-        .uploadBinary(
-          path,
-          bytes,
-          fileOptions: FileOptions(contentType: fileType),
-        );
-    final fileUrl = _supabase.storage.from('certificates').getPublicUrl(path);
-    final row = await _supabase
-        .from('certifications')
-        .insert({
-          'user_id': _userId,
-          'title': title.trim(),
-          'issuer': issuer.trim(),
-          'file_name': fileName,
-          'file_url': fileUrl,
-          'file_type': fileType,
-          'issued_date': issuedDate?.toIso8601String(),
-        })
-        .select()
-        .single();
-    return Certification.fromMap(row);
+    final storage = _supabase.storage.from('certificates');
+    await storage.uploadBinary(
+      path,
+      bytes,
+      fileOptions: FileOptions(contentType: fileType, upsert: true),
+    );
+    try {
+      final fileUrl = storage.getPublicUrl(path);
+      final row = await _supabase
+          .from('certifications')
+          .insert({
+            'user_id': _userId,
+            'title': title.trim(),
+            'issuer': issuer.trim(),
+            'file_name': fileName,
+            'file_url': fileUrl,
+            'file_type': fileType,
+            'issued_date': issuedDate?.toIso8601String(),
+          })
+          .select()
+          .single();
+      return Certification.fromMap(row);
+    } catch (_) {
+      await storage.remove([path]);
+      rethrow;
+    }
   }
 
   Future<void> deleteCertification(Certification certification) async {

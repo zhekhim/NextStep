@@ -172,10 +172,12 @@ class _CertificationUploadSheetState extends State<_CertificationUploadSheet> {
       final files = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+        withData: true,
       );
       final file = files.isEmpty ? null : files.single;
       if (file == null) return;
       final bytes = await file.readAsBytes();
+      if (!mounted) return;
       setState(() {
         _bytes = bytes;
         _fileName = file.name;
@@ -219,8 +221,11 @@ class _CertificationUploadSheetState extends State<_CertificationUploadSheet> {
         bytes: _bytes!,
       );
       if (mounted) Navigator.pop(context, certification);
-    } catch (_) {
-      if (mounted) setState(() => _error = 'Upload failed. Please try again.');
+    } catch (error) {
+      debugPrint('Certificate upload failed: $error');
+      if (mounted) {
+        setState(() => _error = 'Upload failed: $error');
+      }
     } finally {
       if (mounted) setState(() => _saving = false);
     }

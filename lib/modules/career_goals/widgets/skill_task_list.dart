@@ -382,13 +382,22 @@ class _SkillTaskListState extends State<SkillTaskList> {
   Future<void> _addToCalendar(SkillTask task) async {
     setState(() => _busyTaskId = task.id);
     try {
-      _showMessage('Review the event in Calendar and tap Save.');
       await _calendarService.openMilestoneEditor(
         milestone: task,
         careerGoalTitle: widget.careerGoalTitle,
       );
-    } catch (_) {
-      _showMessage('Unable to open the calendar event editor. Try again.');
+      _showMessage('Save the pre-filled event in your calendar app.');
+    } on CalendarPermissionDeniedException {
+      _showMessage(
+        'Calendar access was denied. Allow calendar permission in Settings '
+        'to add milestones.',
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Opening the calendar event editor failed: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _showMessage(
+        'Unable to open the calendar app. Make sure a calendar app is installed.',
+      );
     } finally {
       if (mounted) setState(() => _busyTaskId = null);
     }
@@ -810,6 +819,7 @@ class _MilestoneDialogState extends State<_MilestoneDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
+    scrollable: true,
     title: Text(widget.task == null ? 'Add Milestone' : 'Edit Milestone'),
     content: Form(
       key: _formKey,

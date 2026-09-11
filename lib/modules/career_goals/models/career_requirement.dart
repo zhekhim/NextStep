@@ -7,6 +7,21 @@ class CareerRequirement {
   final String skillId;
   final String skillName;
   final String requiredLevel;
+
+  factory CareerRequirement.fromJson(Map<String, dynamic> json) =>
+      CareerRequirement(
+        skillId: json['skill_id'].toString(),
+        skillName: json['skill_name'].toString(),
+        requiredLevel: json['required_level'].toString(),
+      );
+
+  Map<String, Object?> toCacheRow(String careerId) => {
+    'career_id': careerId,
+    'skill_id': skillId,
+    'skill_name': skillName,
+    'required_level': requiredLevel,
+    'updated_at': DateTime.now().toUtc().toIso8601String(),
+  };
 }
 
 enum SkillGapStatus { satisfied, insufficient, missing }

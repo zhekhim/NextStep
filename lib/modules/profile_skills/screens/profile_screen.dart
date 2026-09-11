@@ -69,8 +69,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _profileChangesSubscription = ProfileRepository.profileChanges.listen((_) {
       if (mounted) _loadProfile(showLoading: true);
     });
-    _assessmentChangesSubscription =
-        AssessmentProfileRepository.assessmentChanges.listen((_) {
+    _assessmentChangesSubscription = AssessmentProfileRepository
+        .assessmentChanges
+        .listen((_) {
           if (mounted) _loadLatestAssessment();
         });
     _loadProfile();
@@ -95,7 +96,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     try {
-      final profile = await _profileRepository.getCurrentProfile();
+      try {
+        final cached = await _profileRepository.getCachedProfile();
+        if (cached != null && mounted) {
+          setState(() {
+            _profile = cached;
+            _profileLoading = false;
+            _profileFailed = false;
+          });
+        }
+      } catch (_) {
+        // Continue with Supabase when the local profile cache cannot open.
+      }
+      final profile = await _profileRepository.refreshCurrentProfile();
       if (!mounted) return;
       setState(() {
         _profile = profile;
@@ -106,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _profileLoading = false;
-        _profileFailed = true;
+        _profileFailed = _profile == null;
       });
     }
   }
@@ -163,6 +176,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         fileName: image.name,
         contentType: extension == 'png' ? 'image/png' : 'image/jpeg',
       );
+      await _profileRepository.cacheAvatarUrl(url);
       if (!mounted || _profile == null) return;
       setState(() => _profile = _profile!.copyWith(avatarUrl: url));
       ScaffoldMessenger.of(context).showSnackBar(
@@ -446,10 +460,7 @@ class _ProfileContent extends StatelessWidget {
 }
 
 class _RiasecResultCard extends StatelessWidget {
-  const _RiasecResultCard({
-    required this.assessment,
-    required this.onPressed,
-  });
+  const _RiasecResultCard({required this.assessment, required this.onPressed});
 
   final AssessmentProfile assessment;
   final VoidCallback onPressed;
@@ -534,10 +545,7 @@ class _RiasecResultCard extends StatelessWidget {
                           children: [
                             ShaderMask(
                               shaderCallback: (bounds) => const LinearGradient(
-                                colors: [
-                                  Color(0xFF9B6CFF),
-                                  Color(0xFF5B7CFF),
-                                ],
+                                colors: [Color(0xFF9B6CFF), Color(0xFF5B7CFF)],
                               ).createShader(bounds),
                               child: Text(
                                 assessment.riasecCode,
@@ -603,11 +611,7 @@ class _RiasecDimensionChip extends StatelessWidget {
     ),
     child: Text(
       label,
-      style: TextStyle(
-        color: color,
-        fontSize: 11,
-        fontWeight: FontWeight.w500,
-      ),
+      style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w500),
     ),
   );
 }

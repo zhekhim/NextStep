@@ -87,9 +87,22 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
       _error = null;
     });
     try {
+      final AssessmentQuestionRepository? repository =
+          widget.loadQuestions == null ? AssessmentQuestionRepository() : null;
+      if (repository != null) {
+        try {
+          final cached = await repository.getCachedQuestions();
+          if (cached.isNotEmpty) {
+            _scoring.validateQuestions(cached);
+            if (mounted) setState(() => _questions = cached);
+          }
+        } catch (_) {
+          // Continue with Supabase when cached questions are unavailable.
+        }
+      }
       final questions =
           await (widget.loadQuestions?.call() ??
-              AssessmentQuestionRepository().getActiveQuestions());
+              repository!.getActiveQuestions());
       _scoring.validateQuestions(questions);
       if (mounted) setState(() => _questions = questions);
     } catch (error) {

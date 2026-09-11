@@ -181,7 +181,11 @@ class _EmptyGoal extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.track_changes, size: 56, color: AppColors.textDisabled),
+          const Icon(
+            Icons.track_changes,
+            size: 56,
+            color: AppColors.textDisabled,
+          ),
           const SizedBox(height: 20),
           const Text(
             'Set Your Career Goal',
@@ -220,6 +224,7 @@ class _GoalDetails extends StatefulWidget {
 class _GoalDetailsState extends State<_GoalDetails> {
   final _skillGapService = SkillGapService();
   final _goalProgressService = GoalProgressService();
+  final _careerGoalRepository = CareerGoalRepository();
   final _skillTaskRepository = SkillTaskRepository();
   late final StreamSubscription<void> _skillChangesSubscription;
   bool _loadingSkillGap = true;
@@ -290,33 +295,51 @@ class _GoalDetailsState extends State<_GoalDetails> {
       _skillGapError = null;
     });
     try {
-      final values = await Future.wait<Object>([
-        CareerGoalRepository().getRequirements(goal.career.id),
-        SkillRepository().getUserSkills(),
-      ]);
-      if (!mounted) return;
-      final skillGaps = _skillGapService.compare(
-        values[0] as List<CareerRequirement>,
-        values[1] as List<UserSkill>,
+      final cached = await _careerGoalRepository.getCachedRequirements(
+        goal.career.id,
       );
-      setState(() {
-        _skillGaps = skillGaps;
-        if (!skillGaps.any(
-          (gap) => gap.requirement.skillId == _selectedSkillId,
-        )) {
-          _selectedSkillId = skillGaps.isEmpty
-              ? null
-              : skillGaps.first.requirement.skillId;
-        }
-        _loadingSkillGap = false;
-      });
+      if (cached.isNotEmpty && mounted) {
+        _showSkillGaps(_skillGapService.compare(cached, const []));
+      }
+    } catch (_) {
+      // Continue with Supabase when no local requirements are available.
+    }
+    try {
+      final requirements = await _careerGoalRepository.getRequirements(
+        goal.career.id,
+      );
+      List<UserSkill> userSkills;
+      try {
+        userSkills = await SkillRepository().getUserSkills();
+      } catch (_) {
+        userSkills = const [];
+      }
+      if (!mounted) return;
+      _showSkillGaps(_skillGapService.compare(requirements, userSkills));
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _skillGapError = 'Unable to load skill gap.';
+        _skillGapError = _skillGaps.isEmpty
+            ? 'Unable to load skill gap.'
+            : null;
         _loadingSkillGap = false;
       });
     }
+  }
+
+  void _showSkillGaps(List<SkillGapResult> skillGaps) {
+    setState(() {
+      _skillGaps = skillGaps;
+      if (!skillGaps.any(
+        (gap) => gap.requirement.skillId == _selectedSkillId,
+      )) {
+        _selectedSkillId = skillGaps.isEmpty
+            ? null
+            : skillGaps.first.requirement.skillId;
+      }
+      _skillGapError = null;
+      _loadingSkillGap = false;
+    });
   }
 
   @override
@@ -630,12 +653,18 @@ class _SkillRadarChart extends StatelessWidget {
                 ],
                 radarBackgroundColor: Colors.transparent,
                 borderData: FlBorderData(show: false),
-                radarBorderData: const BorderSide(color: AppColors.hairlineStrong),
+                radarBorderData: const BorderSide(
+                  color: AppColors.hairlineStrong,
+                ),
                 radarShape: RadarShape.polygon,
                 tickCount: 3,
                 ticksTextStyle: const TextStyle(color: Colors.transparent),
-                tickBorderData: const BorderSide(color: AppColors.hairlineStrong),
-                gridBorderData: const BorderSide(color: AppColors.hairlineStrong),
+                tickBorderData: const BorderSide(
+                  color: AppColors.hairlineStrong,
+                ),
+                gridBorderData: const BorderSide(
+                  color: AppColors.hairlineStrong,
+                ),
                 titlePositionPercentageOffset: 0.18,
                 titleTextStyle: const TextStyle(
                   color: AppColors.textSecondary,
@@ -645,10 +674,7 @@ class _SkillRadarChart extends StatelessWidget {
                   if (index >= visibleGaps.length) {
                     return const RadarChartTitle(text: '');
                   }
-                  return RadarChartTitle(
-                    text: labels[index],
-                    angle: 0,
-                  );
+                  return RadarChartTitle(text: labels[index], angle: 0);
                 },
                 radarTouchData: RadarTouchData(enabled: false),
               ),
@@ -728,10 +754,7 @@ class _SkillGapRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final (label, color) = switch (result.status) {
       SkillGapStatus.satisfied => ('Satisfied', AppColors.success),
-      SkillGapStatus.insufficient => (
-        'Needs Improvement',
-        AppColors.warning,
-      ),
+      SkillGapStatus.insufficient => ('Needs Improvement', AppColors.warning),
       SkillGapStatus.missing => ('Missing', AppColors.error),
     };
     return Container(

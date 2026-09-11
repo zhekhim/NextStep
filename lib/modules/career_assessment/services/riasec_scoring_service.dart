@@ -63,7 +63,7 @@ class RiasecScoringService {
       return RiasecDimensionScore(
         dimension: dimension,
         average: average,
-        percentage: ((average - 1) / 4 * 100).clamp(0, 100),
+        percentage: (average / 5 * 100).clamp(0, 100),
         totalScore: totalScore,
         questionCount: values.length,
         enjoyCount: values.where((value) => value == 5).length,

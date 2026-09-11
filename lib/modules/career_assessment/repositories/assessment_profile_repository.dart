@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 
 import '../models/assessment_profile.dart';
 import '../services/riasec_scoring_service.dart';
@@ -21,24 +20,31 @@ class AssessmentProfileRepository {
   SupabaseClient get _supabase => _client ?? Supabase.instance.client;
 
   Future<String> saveResult(RiasecResult result) async {
-    final userId = _supabase.auth.currentUser?.id;
-    if (userId == null) {
+    var session = _supabase.auth.currentSession;
+    if (session == null) {
       throw StateError('A signed-in user is required to save an assessment.');
+    }
+    if (session.isExpired) {
+      session = (await _supabase.auth.refreshSession()).session;
+      if (session == null) {
+        throw StateError(
+          'Your session has expired. Please sign in again before saving.',
+        );
+      }
     }
 
     final scores = AssessmentProfile.scoreFields(result);
-    final now = DateTime.now().toUtc().toIso8601String();
-    final id = const Uuid().v4();
-    await _supabase.from('assessment_profiles').insert({
-      'id': id,
-      'user_id': userId,
-      ...scores,
-      'riasec_code': result.code,
-      'created_at': now,
-      'updated_at': now,
-    });
+    final row = await _supabase
+        .from('assessment_profiles')
+        .insert({
+          'user_id': session.user.id,
+          ...scores,
+          'riasec_code': result.code,
+        })
+        .select('id')
+        .single();
     _assessmentChanges.add(null);
-    return id;
+    return row['id'].toString();
   }
 
   Future<AssessmentProfile?> getLatestResult() async {
@@ -52,10 +58,7 @@ class AssessmentProfileRepository {
         .order('created_at', ascending: false)
         .limit(1);
     if (rows.isEmpty) return null;
-    return AssessmentProfile.fromJson(
-      rows.first,
-      questionCounts: await _getQuestionCounts(),
-    );
+    return AssessmentProfile.fromJson(rows.first);
   }
 
   Future<List<AssessmentProfile>> getHistory() async {
@@ -73,10 +76,7 @@ class AssessmentProfileRepository {
         )
         .eq('user_id', userId)
         .order('created_at', ascending: false);
-    final counts = await _getQuestionCounts();
-    return rows
-        .map((row) => AssessmentProfile.fromJson(row, questionCounts: counts))
-        .toList(growable: false);
+    return rows.map(AssessmentProfile.fromJson).toList(growable: false);
   }
 
   String _requiredUserId(String action) {
@@ -85,35 +85,5 @@ class AssessmentProfileRepository {
       throw StateError('A signed-in user is required to $action.');
     }
     return userId;
-  }
-
-  Future<Map<String, int>> _getQuestionCounts() async {
-    final questionRows = await _supabase
-        .from('assessment_questions')
-        .select('dimension');
-    final counts = <String, int>{};
-    for (final row in questionRows) {
-      final code = _dimensionCode(row['dimension']);
-      if (code != null) counts[code] = (counts[code] ?? 0) + 1;
-    }
-    return counts;
-  }
-
-  String? _dimensionCode(Object? value) {
-    const codes = {
-      'R': 'R',
-      'REALISTIC': 'R',
-      'I': 'I',
-      'INVESTIGATIVE': 'I',
-      'A': 'A',
-      'ARTISTIC': 'A',
-      'S': 'S',
-      'SOCIAL': 'S',
-      'E': 'E',
-      'ENTERPRISING': 'E',
-      'C': 'C',
-      'CONVENTIONAL': 'C',
-    };
-    return codes[value?.toString().trim().toUpperCase()];
   }
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/assessment_profile.dart';
 import '../../../core/theme/app_colors.dart';
@@ -25,7 +26,6 @@ class RiasecTestScreen extends StatefulWidget {
 }
 
 class _RiasecTestScreenState extends State<RiasecTestScreen> {
-  static const _blue = AppColors.primary;
   static const _card = AppColors.surfaceCard;
   static const _surface = AppColors.hairlineStrong;
   static const _secondary = AppColors.textSecondary;
@@ -129,8 +129,9 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
       _validation = null;
     });
     try {
-      final assessmentProfileId = await (widget.saveResult?.call(result) ??
-          AssessmentProfileRepository().saveResult(result));
+      final assessmentProfileId =
+          await (widget.saveResult?.call(result) ??
+              AssessmentProfileRepository().saveResult(result));
       if (!mounted) return;
       await Navigator.of(context).push<void>(
         MaterialPageRoute(
@@ -144,16 +145,30 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
         _resetAssessment();
         _loadLatestResult();
       }
-    } catch (error) {
+    } catch (error, stackTrace) {
       debugPrint('Unable to save assessment result: $error');
+      debugPrintStack(stackTrace: stackTrace);
       if (mounted) {
         setState(() {
-          _validation = 'Unable to save your assessment. Please try again.';
+          _validation = _assessmentSaveError(error);
         });
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
+  }
+
+  String _assessmentSaveError(Object error) {
+    if (error is PostgrestException) {
+      return 'Unable to save assessment (${error.code}): ${error.message}';
+    }
+    if (error is AuthException) {
+      return 'Unable to save assessment: ${error.message}';
+    }
+    if (error is StateError) {
+      return error.message;
+    }
+    return 'Unable to save your assessment. Please try again.';
   }
 
   void _resetAssessment() {
@@ -364,7 +379,9 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        const Expanded(child: _Fact(value: '~5', label: 'MINUTES')),
+        const Expanded(
+          child: _Fact(value: '~5', label: 'MINUTES'),
+        ),
       ],
     );
   }
@@ -513,9 +530,7 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.violetLight
-                      : Colors.transparent,
+                  color: selected ? AppColors.violetLight : Colors.transparent,
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: selected ? AppColors.violetLight : _secondary,

@@ -39,4 +39,28 @@ void main() {
       expect(profile.riasecCode, result.code);
     },
   );
+
+  test('stored RIASEC code is preserved when rebuilding a result', () {
+    final profile = AssessmentProfile(
+      id: 'saved-result',
+      createdAt: DateTime(2026, 9, 11),
+      riasecCode: 'RIA',
+      percentages: const {
+        'R': 60,
+        'I': 55,
+        'A': 50,
+        'S': 95,
+        'E': 90,
+        'C': 85,
+      },
+    );
+
+    final result = profile.toResult();
+
+    expect(result.code, 'RIA');
+    expect(
+      result.rankedScores.map((score) => score.dimension),
+      ['R', 'I', 'A', 'S', 'E', 'C'],
+    );
+  });
 }

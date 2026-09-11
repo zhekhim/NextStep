@@ -40,9 +40,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Profile? _profile;
   CareerGoal? _goal;
   List<UserSkill> _skills = const [];
+  AssessmentProfile? _assessment;
   double _skillMatch = 0;
   double _riasecAlignment = 0;
-  bool _hasAssessment = false;
 
   @override
   void initState() {
@@ -95,9 +95,9 @@ class _HomeScreenState extends State<HomeScreen> {
         _profile = profile;
         _skills = skills;
         _goal = goal;
+        _assessment = assessment;
         _skillMatch = match;
         _riasecAlignment = alignment;
-        _hasAssessment = assessment != null;
         _loading = false;
       });
     } catch (_) {
@@ -166,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 6),
                 const Text('Keep going, small steps lead to big opportunities.', style: TextStyle(color: AppColors.textSecondary, fontSize: 15)),
                 const SizedBox(height: 24),
-                _ReadinessCard(score: _readiness, skillMatch: _skillMatch, riasecAlignment: _riasecAlignment, hasGoal: _goal != null, hasAssessment: _hasAssessment, onPressed: () => widget.onSelectSection(3)),
+                _ReadinessCard(score: _readiness, skillMatch: _skillMatch, riasecAlignment: _riasecAlignment, hasGoal: _goal != null, hasAssessment: _assessment != null, onPressed: () => widget.onSelectSection(3)),
                 const SizedBox(height: 24),
                 _SectionTitle(title: 'Current Career Goal', accent: AppColors.sky, action: _goal == null ? null : 'View Goal', onPressed: () => widget.onSelectSection(3)),
                 const SizedBox(height: 12),
@@ -178,7 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 24),
                 const _SectionTitle(title: 'Assessment', accent: AppColors.violetLight),
                 const SizedBox(height: 12),
-                _AssessmentCard(onPressed: () => widget.onSelectSection(2)),
+                _AssessmentCard(assessment: _assessment, onPressed: () => widget.onSelectSection(2)),
                 const SizedBox(height: 24),
                 const _SectionTitle(title: 'Quick Actions', accent: AppColors.primaryLight),
                 const SizedBox(height: 12),
@@ -378,16 +378,184 @@ class _SkillBadge extends StatelessWidget {
 }
 
 class _AssessmentCard extends StatelessWidget {
-  const _AssessmentCard({required this.onPressed});
+  const _AssessmentCard({required this.assessment, required this.onPressed});
+  final AssessmentProfile? assessment;
   final VoidCallback onPressed;
 
   @override
-  Widget build(BuildContext context) => _Card(color: AppColors.violetSoft, borderColor: AppColors.violetLight, child: Row(children: [
-    const Icon(Icons.assignment_outlined, color: AppColors.violetLight, size: 30),
-    const SizedBox(width: 14),
-    const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('Discover careers that match your interests.', style: TextStyle(fontWeight: FontWeight.w600)), SizedBox(height: 4), Text('Complete the RIASEC career assessment.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13))])),
-    IconButton(tooltip: 'Take assessment', onPressed: onPressed, icon: const Icon(Icons.arrow_forward)),
-  ]));
+  Widget build(BuildContext context) {
+    final result = assessment;
+    return _Card(
+      color: AppColors.violetSoft,
+      borderColor: AppColors.violetLight,
+      child: result == null
+          ? Row(children: [
+              const Icon(Icons.assignment_outlined, color: AppColors.violetLight, size: 30),
+              const SizedBox(width: 14),
+              const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('Discover careers that match your interests.', style: TextStyle(fontWeight: FontWeight.w600)),
+                SizedBox(height: 4),
+                Text('Complete the RIASEC career assessment.', style: TextStyle(color: AppColors.textSecondary, fontSize: 13)),
+              ])),
+              IconButton(tooltip: 'Take assessment', onPressed: onPressed, icon: const Icon(Icons.arrow_forward)),
+            ])
+          : _HomeAssessmentResult(
+              assessment: result,
+              onRetake: onPressed,
+            ),
+    );
+  }
+}
+
+class _HomeAssessmentResult extends StatelessWidget {
+  const _HomeAssessmentResult({
+    required this.assessment,
+    required this.onRetake,
+  });
+
+  final AssessmentProfile assessment;
+  final VoidCallback onRetake;
+
+  static const _dimensionNames = {
+    'R': 'Realistic',
+    'I': 'Investigative',
+    'A': 'Artistic',
+    'S': 'Social',
+    'E': 'Enterprising',
+    'C': 'Conventional',
+  };
+
+  static const _chipColors = [
+    AppColors.violetLight,
+    Color(0xFF00C7FF),
+    Color(0xFF00D7B0),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final date = assessment.createdAt.toLocal();
+    final dateText =
+        '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+    final dimensions = assessment.riasecCode.split('');
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 5,
+          height: 70,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF9B6CFF), Color(0xFF7357FF)],
+            ),
+            borderRadius: BorderRadius.circular(99),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'RIASEC RESULT',
+                      style: TextStyle(
+                        color: Color(0xFFB7C5E2),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Completed $dateText',
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                height: 35,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      ShaderMask(
+                        shaderCallback: (bounds) => const LinearGradient(
+                          colors: [Color(0xFF9B6CFF), Color(0xFF5B7CFF)],
+                        ).createShader(bounds),
+                        child: Text(
+                          assessment.riasecCode,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 27,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      for (var index = 0; index < dimensions.length; index++) ...[
+                        if (index > 0) const SizedBox(width: 7),
+                        _HomeRiasecChip(
+                          label:
+                              _dimensionNames[dimensions[index]] ??
+                              dimensions[index],
+                          color: _chipColors[index],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: onRetake,
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 34),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Retake Assessment'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HomeRiasecChip extends StatelessWidget {
+  const _HomeRiasecChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(color: color.withValues(alpha: 0.85)),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(
+        color: color,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
 }
 
 class _QuickActions extends StatelessWidget {

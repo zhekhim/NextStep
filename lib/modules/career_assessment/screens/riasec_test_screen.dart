@@ -1,15 +1,23 @@
 import 'package:flutter/material.dart';
 
+import '../models/assessment_profile.dart';
 import '../models/riasec_question.dart';
 import '../repositories/assessment_profile_repository.dart';
 import '../repositories/assessment_question_repository.dart';
 import '../services/riasec_scoring_service.dart';
+import 'assessment_history_screen.dart';
 import 'riasec_about_screen.dart';
 import 'riasec_result_screen.dart';
 
 class RiasecTestScreen extends StatefulWidget {
-  const RiasecTestScreen({super.key, this.loadQuestions, this.saveResult});
+  const RiasecTestScreen({
+    super.key,
+    this.loadQuestions,
+    this.loadLatestResult,
+    this.saveResult,
+  });
   final Future<List<RiasecQuestion>> Function()? loadQuestions;
+  final Future<AssessmentProfile?> Function()? loadLatestResult;
   final Future<void> Function(RiasecResult result)? saveResult;
   @override
   State<RiasecTestScreen> createState() => _RiasecTestScreenState();
@@ -33,14 +41,42 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
   int _current = 0;
   bool _started = false;
   bool _loading = false;
+  bool _latestResultLoading = false;
   bool _submitting = false;
   String? _error;
+  String? _latestResultError;
   String? _validation;
+  AssessmentProfile? _latestResult;
 
   @override
   void initState() {
     super.initState();
     _loadQuestions();
+    _loadLatestResult();
+  }
+
+  Future<void> _loadLatestResult() async {
+    if (_latestResultLoading) return;
+    setState(() {
+      _latestResultLoading = true;
+      _latestResultError = null;
+    });
+    try {
+      final result =
+          await (widget.loadLatestResult?.call() ??
+              AssessmentProfileRepository().getLatestResult());
+      if (mounted) setState(() => _latestResult = result);
+    } catch (error) {
+      debugPrint('Unable to load latest assessment result: $error');
+      if (mounted) {
+        setState(() {
+          _latestResult = null;
+          _latestResultError = 'Unable to load your latest result.';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _latestResultLoading = false);
+    }
   }
 
   Future<void> _loadQuestions() async {
@@ -98,7 +134,10 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
       await Navigator.of(context).push<void>(
         MaterialPageRoute(builder: (_) => RiasecResultScreen(result: result)),
       );
-      if (mounted) _resetAssessment();
+      if (mounted) {
+        _resetAssessment();
+        _loadLatestResult();
+      }
     } catch (error) {
       debugPrint('Unable to save assessment result: $error');
       if (mounted) {
@@ -201,6 +240,54 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
             child: const Text('Start Assessment'),
           ),
         ),
+        const SizedBox(height: 10),
+        if (_latestResult != null) ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => RiasecResultScreen(
+                    result: _latestResult!.toResult(),
+                  ),
+                ),
+              ),
+              icon: const Icon(Icons.recommend_outlined),
+              label: const Text('View Latest Result & Recommendations'),
+            ),
+          ),
+          const SizedBox(height: 10),
+        ],
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const AssessmentHistoryScreen(),
+              ),
+            ),
+            icon: const Icon(Icons.history),
+            label: const Text('View Assessment History'),
+          ),
+        ),
+        if (_latestResultError != null) ...[
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  _latestResultError!,
+                  style: const TextStyle(color: Color(0xFFFF4D4D)),
+                ),
+              ),
+              TextButton(
+                onPressed: _latestResultLoading ? null : _loadLatestResult,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ],
         const SizedBox(height: 10),
         SizedBox(
           width: double.infinity,

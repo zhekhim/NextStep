@@ -259,7 +259,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) => RiasecResultScreen(result: assessment.toResult()),
+        builder: (_) => RiasecResultScreen(
+          result: assessment.toResult(),
+          assessmentProfileId: assessment.id,
+        ),
       ),
     );
   }

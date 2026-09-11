@@ -19,7 +19,7 @@ class RiasecTestScreen extends StatefulWidget {
   });
   final Future<List<RiasecQuestion>> Function()? loadQuestions;
   final Future<AssessmentProfile?> Function()? loadLatestResult;
-  final Future<void> Function(RiasecResult result)? saveResult;
+  final Future<String> Function(RiasecResult result)? saveResult;
   @override
   State<RiasecTestScreen> createState() => _RiasecTestScreenState();
 }
@@ -216,12 +216,24 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
       children: [
         Center(child: Image.asset('lib/image/riasec.png', height: 210)),
         const SizedBox(height: 24),
-        const Text(
-          'Discover Your Interests.\nShape Your Career.',
+        const Text.rich(
+          TextSpan(
+            children: [
+              TextSpan(
+                text: 'Discover Your Interests.\n',
+                style: TextStyle(color: AppColors.textPrimary),
+              ),
+              TextSpan(
+                text: 'Shape Your Career.',
+                style: TextStyle(color: AppColors.violetLight),
+              ),
+            ],
+          ),
           style: TextStyle(
-            fontSize: 30,
-            height: 1.15,
-            fontWeight: FontWeight.w600,
+            fontSize: 25,
+            height: 1.18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
           ),
         ),
         const SizedBox(height: 14),
@@ -240,7 +252,7 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
                 ? null
                 : () => setState(() => _started = true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: _blue,
+              backgroundColor: AppColors.violetLight,
               foregroundColor: AppColors.textPrimary,
             ),
             child: const Text('Start Assessment'),
@@ -255,6 +267,7 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
                 MaterialPageRoute<void>(
                   builder: (_) => RiasecResultScreen(
                     result: _latestResult!.toResult(),
+                    assessmentProfileId: _latestResult!.id,
                   ),
                 ),
               ),
@@ -350,6 +363,8 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
             label: 'INTEREST AREAS',
           ),
         ),
+        const SizedBox(width: 8),
+        const Expanded(child: _Fact(value: '~5', label: 'MINUTES')),
       ],
     );
   }
@@ -402,36 +417,69 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
-                onPressed: _submitting || _current == 0
-                    ? null
-                    : () => setState(() {
-                        _current--;
-                        _validation = null;
-                      }),
-                child: const Text('Previous'),
+              child: SizedBox(
+                height: 52,
+                child: OutlinedButton.icon(
+                  onPressed: _submitting || _current == 0
+                      ? null
+                      : () => setState(() {
+                          _current--;
+                          _validation = null;
+                        }),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textPrimary,
+                    side: const BorderSide(color: AppColors.hairlineStrong),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  icon: const Icon(Icons.chevron_left, size: 24),
+                  label: const Text(
+                    'Previous',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: ElevatedButton(
-                onPressed: _submitting ? null : _next,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _blue,
-                  foregroundColor: AppColors.textPrimary,
-                ),
-                child: _submitting
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: AppColors.textPrimary,
+              child: SizedBox(
+                height: 52,
+                child: ElevatedButton(
+                  onPressed: _submitting ? null : _next,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.violetLight,
+                    foregroundColor: AppColors.textPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.textPrimary,
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _current == _questions.length - 1
+                                  ? 'Submit'
+                                  : 'Next',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.chevron_right, size: 24),
+                          ],
                         ),
-                      )
-                    : Text(
-                        _current == _questions.length - 1 ? 'Submit' : 'Next',
-                      ),
+                ),
               ),
             ),
           ],
@@ -453,19 +501,49 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: selected ? AppColors.violetSoft : _card,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected ? AppColors.violetLight : _surface,
+              width: selected ? 1.5 : 1,
             ),
           ),
           child: Row(
             children: [
-              Icon(
-                selected ? Icons.check_circle : Icons.radio_button_off,
-                color: selected ? AppColors.violetLight : _secondary,
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: selected
+                      ? AppColors.violetLight
+                      : Colors.transparent,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: selected ? AppColors.violetLight : _secondary,
+                    width: 2,
+                  ),
+                ),
+                alignment: Alignment.center,
+                child: selected
+                    ? Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: AppColors.textPrimary,
+                          shape: BoxShape.circle,
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 12),
-              Text('$value. $label'),
+              Text(
+                '$value. $label',
+                style: TextStyle(
+                  color: selected
+                      ? AppColors.violetLight
+                      : AppColors.textPrimary,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                ),
+              ),
             ],
           ),
         ),
@@ -483,9 +561,9 @@ class _Fact extends StatelessWidget {
     height: 64,
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: AppColors.violetSoft,
+      color: AppColors.surfaceBlue,
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: AppColors.violetLight.withValues(alpha: 0.65)),
+      border: Border.all(color: AppColors.hairlineStrong),
     ),
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,

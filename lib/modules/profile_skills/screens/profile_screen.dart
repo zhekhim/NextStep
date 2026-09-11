@@ -223,7 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     Widget content;
     if (_profileLoading) {
       content = const Center(
-        child: CircularProgressIndicator(color: Color(0xFF1A26FF)),
+        child: CircularProgressIndicator(color: Color(0xFF60A5FA)),
       );
     } else if (_profileFailed || _profile == null) {
       content = _ProfileError(onRetry: () => _loadProfile(showLoading: true));
@@ -338,7 +338,7 @@ class _ProfileContent extends StatelessWidget {
             icon: const Icon(Icons.edit_outlined, size: 20),
             label: const Text('Edit Profile'),
             style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF0007CD),
+              backgroundColor: const Color(0xFF4169E1),
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -395,7 +395,7 @@ class _IdentityCard extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 34,
-            backgroundColor: const Color(0xFF0007CD),
+                    backgroundColor: const Color(0xFF4169E1),
             foregroundImage: profile.avatarUrl == null
                 ? null
                 : NetworkImage(profile.avatarUrl!),
@@ -485,7 +485,7 @@ class _SkillsPortfolioCard extends StatelessWidget {
                 Text(
                   '${skills.length} ${skills.length == 1 ? 'skill' : 'skills'}',
                   style: const TextStyle(
-                    color: Color(0xFF1A26FF),
+                    color: Color(0xFF60A5FA),
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
                   ),
@@ -499,7 +499,7 @@ class _SkillsPortfolioCard extends StatelessWidget {
               child: SizedBox.square(
                 dimension: 22,
                 child: CircularProgressIndicator(
-                  color: Color(0xFF1A26FF),
+                    color: Color(0xFF60A5FA),
                   strokeWidth: 2,
                 ),
               ),

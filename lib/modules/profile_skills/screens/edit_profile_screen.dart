@@ -131,7 +131,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 children: [
                   CircleAvatar(
                     radius: 32,
-                    backgroundColor: const Color(0xFF0007CD),
+                    backgroundColor: const Color(0xFF4169E1),
                     foregroundImage: widget.profile.avatarUrl == null
                         ? null
                         : NetworkImage(widget.profile.avatarUrl!),

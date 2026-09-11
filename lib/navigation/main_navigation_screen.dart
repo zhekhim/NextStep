@@ -30,11 +30,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       body: IndexedStack(index: _selectedIndex, children: _screens),
       bottomNavigationBar: NavigationBar(
         backgroundColor: const Color(0xFF000000),
-        indicatorColor: const Color(0xFF0007CD).withValues(alpha: 0.18),
+        indicatorColor: const Color(0xFF4169E1).withValues(alpha: 0.18),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           return TextStyle(
             color: states.contains(WidgetState.selected)
-                ? const Color(0xFF1A26FF)
+                ? const Color(0xFF60A5FA)
                 : const Color(0xFF888888),
             fontSize: 12,
             fontWeight: FontWeight.w500,

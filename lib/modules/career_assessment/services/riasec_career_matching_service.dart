@@ -13,7 +13,7 @@ class RiasecCareerMatchingService {
     final careerById = {for (final career in careers) career.id: career};
     final userValues = {
       for (final score in result.rankedScores)
-        score.dimension: score.percentage / 20,
+        score.dimension: score.average,
     };
     final matches = profiles.where((profile) => careerById.containsKey(profile.careerId)).map((profile) {
       final totalDifference = RiasecScoringService.dimensions.fold<double>(

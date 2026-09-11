@@ -69,23 +69,57 @@ class _SkillTaskListState extends State<SkillTaskList> {
       _error = null;
     });
     try {
-      final values = await Future.wait([
-        _repository.getTasksForSkill(
-          goalId: widget.goalId,
-          skillId: widget.skillId,
-        ),
-        _repository.getRecommendedTemplates(
+      try {
+        final cachedValues = await Future.wait([
+          _repository.getCachedTasksForSkill(
+            goalId: widget.goalId,
+            skillId: widget.skillId,
+          ),
+          _repository.getCachedRecommendedTemplates(
+            skillId: widget.skillId,
+            currentLevel: widget.currentLevel,
+            requiredLevel: widget.requiredLevel,
+          ),
+        ]);
+        final cachedTasks = cachedValues[0] as List<SkillTask>;
+        final cachedTemplates = cachedValues[1] as List<SkillMilestoneTemplate>;
+        if ((cachedTasks.isNotEmpty || cachedTemplates.isNotEmpty) && mounted) {
+          final addedTemplateIds = cachedTasks
+              .map((task) => task.templateId)
+              .whereType<String>()
+              .toSet();
+          setState(() {
+            _tasks = cachedTasks;
+            _recommendations = cachedTemplates
+                .where((template) => !addedTemplateIds.contains(template.id))
+                .toList(growable: false);
+            _loading = false;
+            _refreshing = true;
+          });
+        }
+      } catch (_) {
+        // Continue with Supabase when cached skill details are unavailable.
+      }
+      final tasks = await _repository.getTasksForSkill(
+        goalId: widget.goalId,
+        skillId: widget.skillId,
+      );
+      List<SkillMilestoneTemplate> templates;
+      try {
+        templates = await _repository.getRecommendedTemplates(
           skillId: widget.skillId,
           currentLevel: widget.currentLevel,
           requiredLevel: widget.requiredLevel,
-        ),
-      ]);
-      final tasks = values[0] as List<SkillTask>;
+        );
+      } catch (_) {
+        templates = _recommendations;
+        if (tasks.isEmpty && templates.isEmpty) rethrow;
+      }
       final addedTemplateIds = tasks
           .map((task) => task.templateId)
           .whereType<String>()
           .toSet();
-      final recommendations = (values[1] as List<SkillMilestoneTemplate>)
+      final recommendations = templates
           .where((template) => !addedTemplateIds.contains(template.id))
           .toList(growable: false);
       if (!mounted) return;
@@ -504,7 +538,11 @@ class _SkillTaskListState extends State<SkillTaskList> {
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Icon(Icons.auto_awesome, size: 16, color: AppColors.primaryLight),
+                          const Icon(
+                            Icons.auto_awesome,
+                            size: 16,
+                            color: AppColors.primaryLight,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -514,7 +552,10 @@ class _SkillTaskListState extends State<SkillTaskList> {
                           ),
                           Text(
                             '${template.suggestedDurationDays}d',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -528,7 +569,9 @@ class _SkillTaskListState extends State<SkillTaskList> {
                           ? null
                           : _addRecommendedPlan,
                       icon: const Icon(Icons.playlist_add),
-                      label: Text('Add Recommended Plan (${_recommendations.length})'),
+                      label: Text(
+                        'Add Recommended Plan (${_recommendations.length})',
+                      ),
                     ),
                   ),
                 ],
@@ -539,12 +582,18 @@ class _SkillTaskListState extends State<SkillTaskList> {
           if (_tasks.isNotEmpty) ...[
             Text(
               '$completed / ${_tasks.length} completed',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 3),
             Text(
               'Plan Status: $planStatus',
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
             ),
             const SizedBox(height: 8),
             LinearProgressIndicator(
@@ -601,10 +650,7 @@ class _TaskRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final deadlineState = GoalProgressService().deadlineState(task);
     final (deadlineLabel, deadlineColor) = switch (deadlineState) {
-      MilestoneDeadlineState.completed => (
-        'Completed',
-        AppColors.success,
-      ),
+      MilestoneDeadlineState.completed => ('Completed', AppColors.success),
       MilestoneDeadlineState.overdue => ('Overdue', AppColors.error),
       MilestoneDeadlineState.dueSoon => ('Due Soon', AppColors.warning),
       MilestoneDeadlineState.upcoming => ('Upcoming', AppColors.primaryLight),

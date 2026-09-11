@@ -35,6 +35,22 @@ class _CareerFairsScreenState extends State<CareerFairsScreen> {
       _errorMessage = null;
     });
     try {
+      if (_repository case final SupabaseCareerFairRepository repository) {
+        try {
+          final cached = await repository.getCachedCareerFairs();
+          if (cached.isNotEmpty && mounted) {
+            final today = SupabaseCareerFairRepository.malaysiaToday(
+              DateTime.now(),
+            );
+            final upcoming =
+                cached.where((fair) => !fair.eventDate.isBefore(today)).toList()
+                  ..sort(SupabaseCareerFairRepository.compareUpcoming);
+            setState(() => _careerFairs = upcoming);
+          }
+        } catch (_) {
+          // Continue with the online source when the local cache cannot open.
+        }
+      }
       final fairs = await _repository.getUpcomingCareerFairs();
       if (mounted) setState(() => _careerFairs = fairs);
     } catch (error) {

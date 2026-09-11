@@ -42,7 +42,7 @@ class SkillTask {
     skillId: json['skill_id'].toString(),
     taskTitle: json['task_title'].toString(),
     dueDate: DateTime.parse(json['due_date'].toString()),
-    isCompleted: json['is_completed'] as bool? ?? false,
+    isCompleted: _boolValue(json['is_completed']),
     templateId: json['template_id'] as String?,
     description: json['description'] as String?,
     completionEvidence: json['completion_evidence'] as String?,
@@ -73,10 +73,18 @@ class SkillTask {
     'updated_at': updatedAt?.toUtc().toIso8601String(),
   };
 
+  Map<String, Object?> toCacheRow() => {
+    ...toJson(),
+    'is_completed': isCompleted ? 1 : 0,
+  };
+
   static DateTime? _dateTimeOrNull(Object? value) {
     if (value == null) return null;
     return DateTime.tryParse(value.toString());
   }
+
+  static bool _boolValue(Object? value) =>
+      value == true || value == 1 || value?.toString().toLowerCase() == 'true';
 
   static String _dateOnly(DateTime date) =>
       '${date.year.toString().padLeft(4, '0')}-'
@@ -94,6 +102,7 @@ class SkillMilestoneTemplate {
     required this.description,
     required this.completionEvidence,
     required this.suggestedDurationDays,
+    this.updatedAt,
   });
 
   final String id;
@@ -104,6 +113,7 @@ class SkillMilestoneTemplate {
   final String description;
   final String completionEvidence;
   final int suggestedDurationDays;
+  final DateTime? updatedAt;
 
   factory SkillMilestoneTemplate.fromJson(Map<String, dynamic> json) =>
       SkillMilestoneTemplate(
@@ -115,5 +125,18 @@ class SkillMilestoneTemplate {
         description: json['description'].toString(),
         completionEvidence: json['completion_evidence'].toString(),
         suggestedDurationDays: json['suggested_duration_days'] as int,
+        updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? ''),
       );
+
+  Map<String, Object?> toCacheRow() => {
+    'id': id,
+    'skill_id': skillId,
+    'milestone_order': order,
+    'target_level': targetLevel,
+    'title': title,
+    'description': description,
+    'completion_evidence': completionEvidence,
+    'suggested_duration_days': suggestedDurationDays,
+    'updated_at': updatedAt?.toUtc().toIso8601String(),
+  };
 }

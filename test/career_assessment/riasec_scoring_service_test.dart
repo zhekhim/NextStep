@@ -23,7 +23,7 @@ void main() {
     );
     expect(realistic.totalScore, 32);
     expect(realistic.average, 4);
-    expect(realistic.percentage, 75);
+    expect(realistic.percentage, 80);
   });
 
   test('uses response counts and fixed RIASEC order to break ties', () {

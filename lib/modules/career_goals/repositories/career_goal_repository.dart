@@ -2,21 +2,23 @@ import 'dart:async';
 
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/database/local_database.dart';
 import '../../profile_skills/repositories/profile_repository.dart';
 import '../models/career_goal.dart';
 import '../models/career_requirement.dart';
 
 class CareerGoalRepository {
-  factory CareerGoalRepository({SupabaseClient? client}) {
-    return CareerGoalRepository._(client);
+  factory CareerGoalRepository({SupabaseClient? client, LocalCache? cache}) {
+    return CareerGoalRepository._(client, cache ?? LocalDatabase.instance);
   }
 
-  CareerGoalRepository._(this._client);
+  CareerGoalRepository._(this._client, this._cache);
   static final _goalChanges = StreamController<void>.broadcast();
 
   static Stream<void> get goalChanges => _goalChanges.stream;
 
   final SupabaseClient? _client;
+  final LocalCache _cache;
   SupabaseClient get _supabase => _client ?? Supabase.instance.client;
   String get _userId {
     final id = _supabase.auth.currentUser?.id;
@@ -79,6 +81,30 @@ class CareerGoalRepository {
   }
 
   Future<List<CareerRequirement>> getRequirements(String careerId) async {
+    try {
+      final result = await _fetchRequirements(careerId);
+      try {
+        await _cache.replaceCareerRequirements(
+          careerId,
+          result.map((item) => item.toCacheRow(careerId)).toList(),
+        );
+      } catch (_) {
+        // Supabase data remains usable if the optional cache cannot be updated.
+      }
+      return result;
+    } catch (_) {
+      final rows = await _cache.readCareerRequirements(careerId);
+      if (rows.isEmpty) rethrow;
+      return rows.map(CareerRequirement.fromJson).toList(growable: false);
+    }
+  }
+
+  Future<List<CareerRequirement>> getCachedRequirements(String careerId) async {
+    final rows = await _cache.readCareerRequirements(careerId);
+    return rows.map(CareerRequirement.fromJson).toList(growable: false);
+  }
+
+  Future<List<CareerRequirement>> _fetchRequirements(String careerId) async {
     final links = await _supabase
         .from('career_skills')
         .select('skill_id, required_level')
@@ -93,17 +119,15 @@ class CareerGoalRepository {
       for (final row in skills)
         row['id'].toString(): row['skill_name'].toString(),
     };
-    final result =
-        links
-            .map(
-              (row) => CareerRequirement(
-                skillId: row['skill_id'].toString(),
-                skillName: names[row['skill_id'].toString()] ?? 'Unknown skill',
-                requiredLevel: row['required_level']?.toString() ?? 'Beginner',
-              ),
-            )
-            .toList()
-          ..sort((a, b) => a.skillName.compareTo(b.skillName));
-    return result;
+    return links
+        .map(
+          (row) => CareerRequirement(
+            skillId: row['skill_id'].toString(),
+            skillName: names[row['skill_id'].toString()] ?? 'Unknown skill',
+            requiredLevel: row['required_level']?.toString() ?? 'Beginner',
+          ),
+        )
+        .toList()
+      ..sort((a, b) => a.skillName.compareTo(b.skillName));
   }
 }

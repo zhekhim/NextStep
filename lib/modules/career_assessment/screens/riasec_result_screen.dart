@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 import '../../career_intelligence/models/career.dart';
 import '../../career_intelligence/repositories/career_repository.dart';
 import '../../career_intelligence/screens/career_detail_screen.dart';
-import '../../career_intelligence/screens/interested_careers_screen.dart';
 import '../services/assessment_report_service.dart';
-import '../widgets/save_recommended_career_button.dart';
 import '../models/assessment_dimension.dart';
 import '../models/riasec_career_match.dart';
 import '../repositories/assessment_dimension_repository.dart';
@@ -229,16 +227,6 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
             ),
             const SizedBox(height: 12),
             _matchesState(),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => const InterestedCareersScreen(),
-                ),
-              ),
-              icon: const Icon(Icons.bookmarks_outlined),
-              label: const Text('Manage Saved Careers'),
-            ),
             const SizedBox(height: 10),
             FilledButton.icon(
               onPressed:
@@ -573,7 +561,6 @@ class _MatchCard extends StatelessWidget {
           ),
           child: const Text('Explore Career'),
         ),
-        SaveRecommendedCareerButton(career: match.career),
       ],
     ),
   );

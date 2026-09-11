@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/theme/app_colors.dart';
 import '../models/assessment_dimension.dart';
 import '../repositories/assessment_dimension_repository.dart';
 
@@ -13,7 +14,7 @@ class RiasecAboutScreen extends StatefulWidget {
 }
 
 class _RiasecAboutScreenState extends State<RiasecAboutScreen> {
-  static const _secondaryText = Color(0xFFA8A8A8);
+  static const _secondaryText = AppColors.textSecondary;
 
   List<AssessmentDimension> _dimensions = const [];
   bool _isLoading = false;
@@ -156,7 +157,7 @@ class _InformationSection extends StatelessWidget {
           Text(
             paragraphs[index],
             style: const TextStyle(
-              color: Color(0xFFA8A8A8),
+              color: AppColors.textSecondary,
               fontSize: 15,
               height: 1.55,
             ),
@@ -188,10 +189,10 @@ class _DimensionCardState extends State<_DimensionCard> {
       expanded: _isExpanded,
       label: '${dimension.name} dimension details',
       child: Material(
-        color: const Color(0xFF181818),
+        color: AppColors.surfaceCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(color: Color(0xFF222222)),
+          side: const BorderSide(color: AppColors.hairlineStrong),
         ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
@@ -210,13 +211,13 @@ class _DimensionCardState extends State<_DimensionCard> {
                     height: 44,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0007CD).withValues(alpha: 0.22),
+                      color: AppColors.violetSoft,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       dimension.code,
                       style: const TextStyle(
-                        color: Color(0xFF1A26FF),
+                        color: AppColors.violetLight,
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                       ),
@@ -243,7 +244,7 @@ class _DimensionCardState extends State<_DimensionCard> {
                               duration: const Duration(milliseconds: 220),
                               child: const Icon(
                                 Icons.keyboard_arrow_down,
-                                color: Color(0xFFA8A8A8),
+                                color: AppColors.textSecondary,
                               ),
                             ),
                           ],
@@ -258,7 +259,7 @@ class _DimensionCardState extends State<_DimensionCard> {
                           Text(
                             dimension.description,
                             style: const TextStyle(
-                              color: Color(0xFFA8A8A8),
+                              color: AppColors.textSecondary,
                               fontSize: 14,
                               height: 1.5,
                             ),
@@ -273,7 +274,7 @@ class _DimensionCardState extends State<_DimensionCard> {
                             Text(
                               dimension.characteristics,
                               style: const TextStyle(
-                                color: Color(0xFFA8A8A8),
+                                color: AppColors.textSecondary,
                                 fontSize: 14,
                                 height: 1.5,
                               ),

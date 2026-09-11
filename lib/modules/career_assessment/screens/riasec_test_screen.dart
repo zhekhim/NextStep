@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/assessment_profile.dart';
+import '../../../core/theme/app_colors.dart';
 import '../models/riasec_question.dart';
 import '../repositories/assessment_profile_repository.dart';
 import '../repositories/assessment_question_repository.dart';
@@ -24,10 +25,10 @@ class RiasecTestScreen extends StatefulWidget {
 }
 
 class _RiasecTestScreenState extends State<RiasecTestScreen> {
-  static const _blue = Color(0xFF0007CD);
-  static const _card = Color(0xFF181818);
-  static const _surface = Color(0xFF222222);
-  static const _secondary = Color(0xFFA8A8A8);
+  static const _blue = AppColors.primary;
+  static const _card = AppColors.surfaceCard;
+  static const _surface = AppColors.hairlineStrong;
+  static const _secondary = AppColors.textSecondary;
   static const _labels = [
     'Dislike',
     'Slightly Dislike',
@@ -128,11 +129,16 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
       _validation = null;
     });
     try {
-      await (widget.saveResult?.call(result) ??
+      final assessmentProfileId = await (widget.saveResult?.call(result) ??
           AssessmentProfileRepository().saveResult(result));
       if (!mounted) return;
       await Navigator.of(context).push<void>(
-        MaterialPageRoute(builder: (_) => RiasecResultScreen(result: result)),
+        MaterialPageRoute(
+          builder: (_) => RiasecResultScreen(
+            result: result,
+            assessmentProfileId: assessmentProfileId,
+          ),
+        ),
       );
       if (mounted) {
         _resetAssessment();
@@ -235,7 +241,7 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
                 : () => setState(() => _started = true),
             style: ElevatedButton.styleFrom(
               backgroundColor: _blue,
-              foregroundColor: Colors.white,
+              foregroundColor: AppColors.textPrimary,
             ),
             child: const Text('Start Assessment'),
           ),
@@ -320,7 +326,7 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
     if (_error != null) {
       return Column(
         children: [
-          Text(_error!, style: const TextStyle(color: Color(0xFFFF4D4D))),
+          Text(_error!, style: const TextStyle(color: AppColors.error)),
           const SizedBox(height: 12),
           OutlinedButton(onPressed: _loadQuestions, child: const Text('Retry')),
         ],
@@ -361,7 +367,7 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
         LinearProgressIndicator(
           value: (_current + 1) / _questions.length,
           minHeight: 6,
-          color: _blue,
+          color: AppColors.primaryLight,
           backgroundColor: _surface,
         ),
         const SizedBox(height: 24),
@@ -389,7 +395,7 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               _validation!,
-              style: const TextStyle(color: Color(0xFFFF4D4D)),
+              style: const TextStyle(color: AppColors.error),
             ),
           ),
         const SizedBox(height: 20),
@@ -412,13 +418,16 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
                 onPressed: _submitting ? null : _next,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _blue,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.textPrimary,
                 ),
                 child: _submitting
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.textPrimary,
+                        ),
                       )
                     : Text(
                         _current == _questions.length - 1 ? 'Submit' : 'Next',
@@ -443,15 +452,17 @@ class _RiasecTestScreenState extends State<RiasecTestScreen> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: selected ? _blue.withValues(alpha: .22) : _card,
+            color: selected ? AppColors.violetSoft : _card,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: selected ? _blue : _surface),
+            border: Border.all(
+              color: selected ? AppColors.violetLight : _surface,
+            ),
           ),
           child: Row(
             children: [
               Icon(
                 selected ? Icons.check_circle : Icons.radio_button_off,
-                color: selected ? const Color(0xFF1A26FF) : _secondary,
+                color: selected ? AppColors.violetLight : _secondary,
               ),
               const SizedBox(width: 12),
               Text('$value. $label'),
@@ -472,9 +483,9 @@ class _Fact extends StatelessWidget {
     height: 64,
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: const Color(0xFF181818),
+      color: AppColors.violetSoft,
       borderRadius: BorderRadius.circular(8),
-      border: Border.all(color: const Color(0xFF2A2A2A)),
+      border: Border.all(color: AppColors.violetLight.withValues(alpha: 0.65)),
     ),
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -482,14 +493,14 @@ class _Fact extends StatelessWidget {
         Text(
           value,
           style: const TextStyle(
-            color: Color(0xFF1A26FF),
+            color: AppColors.violetLight,
             fontSize: 17,
             fontWeight: FontWeight.w700,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(color: Color(0xFFA8A8A8), fontSize: 9),
+          style: const TextStyle(color: AppColors.textSecondary, fontSize: 9),
         ),
       ],
     ),

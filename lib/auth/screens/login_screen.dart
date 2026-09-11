@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/utils/validators.dart';
 import '../../routes/app_routes.dart';
 import '../repositories/auth_repository.dart';
@@ -49,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Logged in successfully.'),
-          backgroundColor: Color(0xFF33D17A),
+          backgroundColor: AppColors.success,
         ),
       );
     } on AuthException catch (error) {
@@ -77,7 +78,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: const Color(0xFFFF4D4D),
+        backgroundColor: AppColors.error,
       ),
     );
   }
@@ -85,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F0F0F),
+      backgroundColor: AppColors.canvas,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -100,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const Text(
                       'Welcome back',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.textPrimary,
                         fontSize: 32,
                         fontWeight: FontWeight.w500,
                         letterSpacing: -0.96,
@@ -109,7 +110,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 8),
                     const Text(
                       'Log in to continue building your career portfolio.',
-                      style: TextStyle(color: Color(0xFFA8A8A8), fontSize: 16),
+                       style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
                     ),
                     const SizedBox(height: 32),
                     _field(
@@ -154,7 +155,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: FilledButton(
                         onPressed: _isLoading ? null : _login,
                         style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFF0007CD),
+                          backgroundColor: AppColors.violet,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -165,7 +166,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 height: 22,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: AppColors.textPrimary,
                                 ),
                               )
                             : const Text('Log in'),
@@ -210,18 +211,18 @@ class _LoginScreenState extends State<LoginScreen> {
       onFieldSubmitted: onFieldSubmitted,
       autocorrect: false,
       enableSuggestions: !obscureText,
-      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: AppColors.textPrimary),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Color(0xFFA8A8A8)),
+                      labelStyle: const TextStyle(color: AppColors.textSecondary),
         prefixIcon: Icon(icon),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: const Color(0xFF181818),
+                      fillColor: AppColors.surfaceCard,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF333333)),
+                          borderSide: const BorderSide(color: AppColors.hairlineStrong),
         ),
       ),
     );

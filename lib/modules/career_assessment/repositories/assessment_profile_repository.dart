@@ -20,7 +20,7 @@ class AssessmentProfileRepository {
 
   SupabaseClient get _supabase => _client ?? Supabase.instance.client;
 
-  Future<void> saveResult(RiasecResult result) async {
+  Future<String> saveResult(RiasecResult result) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) {
       throw StateError('A signed-in user is required to save an assessment.');
@@ -28,8 +28,9 @@ class AssessmentProfileRepository {
 
     final scores = AssessmentProfile.scoreFields(result);
     final now = DateTime.now().toUtc().toIso8601String();
+    final id = const Uuid().v4();
     await _supabase.from('assessment_profiles').insert({
-      'id': const Uuid().v4(),
+      'id': id,
       'user_id': userId,
       ...scores,
       'riasec_code': result.code,
@@ -37,6 +38,7 @@ class AssessmentProfileRepository {
       'updated_at': now,
     });
     _assessmentChanges.add(null);
+    return id;
   }
 
   Future<AssessmentProfile?> getLatestResult() async {

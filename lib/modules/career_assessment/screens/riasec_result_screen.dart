@@ -10,12 +10,8 @@ import '../../career_intelligence/screens/career_detail_screen.dart';
 import '../services/assessment_report_service.dart';
 import '../widgets/career_recommendation_evaluation_button.dart';
 import '../models/assessment_dimension.dart';
-import '../models/career_assessment_profile.dart';
-import '../models/riasec_career_match.dart';
 import '../repositories/assessment_dimension_repository.dart';
-import '../repositories/career_assessment_profile_repository.dart';
 import '../services/riasec_scoring_service.dart';
-import '../services/riasec_career_matching_service.dart';
 import 'assessment_history_screen.dart';
 
 class RiasecResultScreen extends StatefulWidget {
@@ -24,13 +20,11 @@ class RiasecResultScreen extends StatefulWidget {
     required this.result,
     required this.assessmentProfileId,
     this.loadCareers,
-    this.loadProfiles,
     this.loadDimensions,
   });
   final RiasecResult result;
   final String assessmentProfileId;
   final Future<List<Career>> Function()? loadCareers;
-  final Future<List<CareerAssessmentProfile>> Function()? loadProfiles;
   final Future<List<AssessmentDimension>> Function()? loadDimensions;
   @override
   State<RiasecResultScreen> createState() => _RiasecResultScreenState();
@@ -49,7 +43,7 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
     'E': 'Enterprising',
     'C': 'Conventional',
   };
-  List<RiasecCareerMatch> _matches = const [];
+  List<Career> _matches = const [];
   Map<String, AssessmentDimension> _dimensions = const {};
   bool _loading = false;
   bool _dimensionsLoading = false;
@@ -65,7 +59,7 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
       final service = AssessmentReportService();
       _reportBytes ??= await service.generate(
         result: widget.result,
-        careers: _matches.map((match) => match.career).toList(),
+        careers: _matches,
         dimensions: _dimensions,
         generatedAt: DateTime.now(),
       );
@@ -75,7 +69,9 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Choose Save or an app to share your PDF.')),
+        const SnackBar(
+          content: Text('Choose Save or an app to share your PDF.'),
+        ),
       );
     } catch (error) {
       debugPrint('Assessment PDF export failed: $error');
@@ -105,16 +101,23 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
       _error = null;
     });
     try {
-      final careers = await (widget.loadCareers?.call() ??
-          CareerRepository().getCareers());
-      final profiles = await (widget.loadProfiles?.call() ??
-          CareerAssessmentProfileRepository().getProfiles());
-      final matches = RiasecCareerMatchingService().findTopMatches(
-        result: widget.result,
-        profiles: profiles,
-        careers: careers,
-      );
-      if (mounted) setState(() => _matches = matches);
+      final code = widget.result.code.trim().toUpperCase();
+      final careers =
+          await (widget.loadCareers?.call() ??
+              CareerRepository().getCareersByRiasecCode(code));
+      final matches =
+          careers
+              .where((career) => career.riasecCode.trim().toUpperCase() == code)
+              .toList()
+            ..sort(
+              (left, right) => left.careerName.compareTo(right.careerName),
+            );
+      if (mounted) {
+        setState(() {
+          _matches = matches.take(5).toList(growable: false);
+          _reportBytes = null;
+        });
+      }
     } catch (error) {
       debugPrint('Unable to generate career matches: $error');
       if (mounted) {
@@ -222,7 +225,7 @@ class _RiasecResultScreenState extends State<RiasecResultScreen> {
             _strongestAreasState(strongest),
             const SizedBox(height: 14),
             const Text(
-              'Top Career Matches',
+              'Careers Matching Your RIASEC Code',
               style: TextStyle(fontSize: 21, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 12),
@@ -458,7 +461,9 @@ class _StrongCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.violetSoft,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.violetLight.withValues(alpha: 0.65)),
+        border: Border.all(
+          color: AppColors.violetLight.withValues(alpha: 0.65),
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,7 +533,7 @@ class _MatchCard extends StatelessWidget {
     required this.assessmentProfileId,
   });
   final int rank;
-  final RiasecCareerMatch match;
+  final Career match;
   final String assessmentProfileId;
   @override
   Widget build(BuildContext context) => Container(
@@ -553,7 +558,7 @@ class _MatchCard extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                match.career.careerName,
+                match.careerName,
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -564,21 +569,21 @@ class _MatchCard extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          match.career.description,
+          match.description,
           style: const TextStyle(color: AppColors.textSecondary),
         ),
         const SizedBox(height: 10),
         OutlinedButton(
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => CareerDetailScreen(career: match.career),
+              builder: (_) => CareerDetailScreen(career: match),
             ),
           ),
           child: const Text('Explore Career'),
         ),
         CareerRecommendationEvaluationButton(
           assessmentProfileId: assessmentProfileId,
-          careerId: match.career.id,
+          careerId: match.id,
         ),
       ],
     ),
